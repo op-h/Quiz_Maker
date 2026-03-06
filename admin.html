@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exam Builder</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { overflow: hidden; }
+
+    /* Dashboard full-screen */
+    #dashboard-screen {
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 0;
+      height: 100%;
+      align-items: stretch;
+    }
+
+    /* Top bar */
+    .top-bar-admin { justify-content: space-between; }
+    .top-bar-admin .top-bar-right { display: flex; align-items: center; gap: 10px; }
+
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+    }
+    .nav-links button:hover,
+    .nav-links button.active {
+      color: var(--accent-primary);
+      background: rgba(88,166,255,.1);
+    }
+
+    /* Workspace area */
+    .admin-workspace {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Cards */
+    .challenge-card.admin-card {
+      max-width: 100%;
+      padding: 28px 32px;
+    }
+    .challenge-card.admin-card h2 {
+      margin-bottom: 20px;
+      font-size: 17px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    /* Alerts */
+    .alert-bar {
+      display: none;
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .alert-bar.success { display: block; background: rgba(63,185,80,.1);  border: 1px solid var(--accent-success); color: var(--accent-success); }
+    .alert-bar.error   { display: block; background: rgba(248,81,73,.1);  border: 1px solid var(--accent-danger);  color: var(--accent-danger);  }
+
+    /* Table with sticky header + vertical scroll */
+    .table-responsive {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 300px);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+    table.admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+      font-size: 13px;
+    }
+    .admin-table thead { position: sticky; top: 0; z-index: 2; }
+    .admin-table th, .admin-table td {
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .admin-table th {
+      background: var(--panel-hover);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .admin-table tbody tr:hover td { background: rgba(139,148,158,.04); }
+    .admin-table .actions { display: flex; gap: 6px; flex-direction: column; }
+
+    /* Editor */
+    #editor-section { display: none; }
+
+    .form-row { display: flex; gap: 14px; margin-bottom: 14px; }
+    .form-group { flex: 1; }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      font-size: 14px;
+      resize: vertical;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent-primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(88,166,255,.2);
+    }
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: var(--border-color); }
+    .form-group small { color: var(--text-muted); font-size: 11px; display: block; margin-top: 4px; }
+  </style>
+</head>
+
+<body>
+  <!-- DASHBOARD SCREEN -->
+  <div id="dashboard-screen" class="screen active">
+    <div class="top-bar top-bar-admin">
+      <div class="brand">Exam Builder</div>
+      <div class="nav-links">
+        <button class="active" id="nav-list">Question List</button>
+        <button id="nav-add">Add Question</button>
+      </div>
+      <div class="top-bar-right">
+        <button class="theme-toggle" id="btn-theme" title="Toggle light/dark mode">Light Mode</button>
+        <button class="success" id="btn-create-quiz">Create Quiz File</button>
+      </div>
+    </div>
+
+    <div class="admin-workspace">
+      <div id="admin-alert" class="alert-bar"></div>
+
+      <!-- Exam Settings row -->
+      <div class="challenge-card admin-card" style="padding: 20px 32px;">
+        <div class="form-row" style="margin-bottom: 0; align-items: flex-end;">
+          <div class="form-group">
+            <label>Exam Title (shown to students)</label>
+            <input type="text" id="exam-title" placeholder="e.g. HTML &amp; CSS Chapter 3 Quiz" value="Custom Exam">
+          </div>
+        </div>
+      </div>
+
+      <!-- LIST SECTION -->
+      <div id="list-section" class="challenge-card admin-card">
+        <h2>Questions</h2>
+        <div style="margin-bottom: 14px; display:flex; align-items:center; gap:10px;">
+          <button class="danger" id="btn-reset-default" style="font-size:12px;padding:5px 10px;">Clear All</button>
+          <span style="font-size:12px; color:var(--text-muted);">Removes all questions from browser storage.</span>
+        </div>
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th style="width:50px">ID</th>
+                <th style="width:160px">Topic / Points</th>
+                <th>Question (EN)</th>
+                <th style="width:160px">Answer Hash</th>
+                <th style="width:100px">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="challenges-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- EDITOR SECTION -->
+      <div id="editor-section" class="challenge-card admin-card">
+        <h2 id="editor-title">Add New Question</h2>
+        <input type="hidden" id="edit-id" value="">
+
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 80px">
+            <label>ID (Order)</label>
+            <input type="number" id="edit-order" min="1" required>
+          </div>
+          <div class="form-group" style="flex:0 0 80px">
+            <label>Points</label>
+            <input type="number" id="edit-points" value="10" min="0.1" step="any" required>
+          </div>
+          <div class="form-group">
+            <label>Topic Category</label>
+            <input type="text" id="edit-topic" placeholder="e.g. Basic HTML Structure" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Question Text (English)</label>
+          <textarea id="edit-q-en" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px">
+          <label>Question Text (Arabic — optional)</label>
+          <textarea id="edit-q-ar" rows="3" dir="rtl"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Expected Answer</label>
+            <input type="text" id="edit-answer" placeholder="Plain text — will be hashed automatically">
+            <small>Leave blank when editing to keep the existing answer.</small>
+          </div>
+          <div class="form-group">
+            <label>Format Hint (shown to student)</label>
+            <input type="text" id="edit-format" placeholder="e.g. Single word or HTML tag" required>
+          </div>
+        </div>
+
+        <div class="action-buttons" style="margin-top:20px">
+          <button class="primary" id="btn-save-challenge">Save Question</button>
+          <button id="btn-cancel-edit">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="challenges.js"></script>
+  <script src="admin.js"></script>
+
+  <!-- Theme toggle script (inline, no dependency) -->
+  <script>
+    (function () {
+      const btn  = document.getElementById('btn-theme');
+      const body = document.body;
+      // Persist choice
+      if (localStorage.getItem('__theme') === 'light') {
+        body.classList.add('light');
+        btn.textContent = 'Dark Mode';
+      }
+      btn.addEventListener('click', () => {
+        body.classList.toggle('light');
+        const isLight = body.classList.contains('light');
+        btn.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+        localStorage.setItem('__theme', isLight ? 'light' : 'dark');
+      });
+    })();
+  </script>
+</body>
+
+</html>
