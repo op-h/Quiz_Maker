@@ -484,6 +484,7 @@ function finishTest(){
   
   showScreen('result');
 }
+document.getElementById('btn-early-finish').addEventListener('click',finishTest);
 })();`;
   }
 
