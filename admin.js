@@ -197,23 +197,19 @@
     document.body.removeChild(a);
 
     showAlert('Exam file downloaded: ' + a.download, true);
+    var title = document.getElementById('exam-title').value.trim() || 'Custom Exam';
+    var themeValue = localStorage.getItem('__theme') || 'dark';
+    
+    // Grab latest styles
+    var cssText = getEmbeddedCss();
+    
+    // Inject custom challenges directly into script enclosure
     btn.textContent = 'Create Quiz File';
     btn.disabled = false;
   });
 
   // ─── Build standalone HTML ────────────────────────────────────
   function buildExamHtml(examTitle) {
-    const dataScript = `
-window.CTF_DATA = {};
-window.CTF_DATA.encodeInput = function(str) {
-  return Array.from(str.toLowerCase().trim())
-    .map(function(c){ return (c.charCodeAt(0)+7).toString(16).padStart(2,'0'); })
-    .join('');
-};
-window.CTF_DATA.defaultChallenges = ${JSON.stringify(localChallenges, null, 2)};
-window.CTF_DATA.getChallenges = function(){ return window.CTF_DATA.defaultChallenges; };
-`;
-
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -244,7 +240,7 @@ window.CTF_DATA.getChallenges = function(){ return window.CTF_DATA.defaultChalle
       <div class="player-info" id="display-name">Student: &mdash;</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <button class="theme-toggle" id="btn-theme">Light Mode</button>
-        <button class="success" id="btn-early-finish" style="display:none">Submit All Answers</button>
+        <button class="success" id="btn-early-finish">Submit All Answers</button>
       </div>
     </div>
     <div class="game-layout">
@@ -261,7 +257,6 @@ window.CTF_DATA.getChallenges = function(){ return window.CTF_DATA.defaultChalle
           </div>
           <div class="action-buttons">
             <button class="primary" id="btn-submit">Submit Answer</button>
-            <button class="warning" id="btn-skip">Skip  (-50% pts)</button>
           </div>
           <div id="alert-box" class="alert-msg"></div>
         </div>
@@ -271,20 +266,24 @@ window.CTF_DATA.getChallenges = function(){ return window.CTF_DATA.defaultChalle
 
   <!-- RESULT SCREEN -->
   <div id="result-screen" class="screen">
-    <div class="modal-box">
-      <h1>Exam Complete</h1>
-      <table class="stats-table">
-        <tr><th>Student</th>     <td id="res-name"></td></tr>
-        <tr><th>Time Elapsed</th><td id="res-time"></td></tr>
-        <tr><th>Final Score</th> <td id="res-score"></td></tr>
-        <tr><th>Max Possible</th><td id="res-max">?</td></tr>
-      </table>
-      <button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>
-    </div>
+      <div class="modal-box text-center">
+        <!-- Results injected dynamically -->
+      </div>
   </div>
 
-  <script>${dataScript}<\/script>
-  <script>${getEmbeddedScript()}<\/script>
+  <script>
+window.CTF_DATA = {};
+window.CTF_DATA.encodeInput = function(str) {
+  var h = 0x811c9dc5;
+  var s = String(str).toLowerCase().trim();
+  for (var i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+};
+</script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges, null, 2))}<\/script>
   <script>
     // Theme toggle for student exam
     (function(){
@@ -339,7 +338,7 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
 .player-info{color:var(--text-muted);font-size:13px}
 #game-screen{flex-direction:column;justify-content:flex-start;align-items:stretch;padding:0;height:100%;width:100%}
 .game-layout{display:flex;flex:1;overflow:hidden;width:100%}
-.sidebar{width:220px;min-width:220px;background:var(--sidebar-bg);border-right:2px solid var(--border-color);overflow-y:auto;flex-shrink:0;padding:10px 0;order:-1}
+.sidebar{width:220px;min-width:220px;background:var(--sidebar-bg);border-right:2px solid var(--border-color);overflow-y:auto;flex-shrink:0;padding:10px 0}
 .level-btn{width:100%;padding:12px 18px;border:none;border-radius:0;border-left:3px solid transparent;background:transparent;color:var(--text-muted);font-size:13px;font-weight:500;text-align:left;display:flex;justify-content:space-between;align-items:center;box-shadow:none;transition:background .15s}
 .level-btn:hover{background:var(--level-btn-hover);color:var(--text-main)}
 .level-btn .icon{width:8px;height:8px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background .2s,box-shadow .2s}
@@ -375,17 +374,31 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript() {
-    return `(function(){
-document.addEventListener('contextmenu',function(e){e.preventDefault();});
-document.addEventListener('copy',function(e){e.preventDefault();});
-document.addEventListener('cut',function(e){e.preventDefault();});
-document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
-var fi=document.getElementById('flag-input');
-fi.addEventListener('paste',function(e){e.preventDefault();});
-
-var encode=window.CTF_DATA.encodeInput;
-var master=window.CTF_DATA.getChallenges();
+  function getEmbeddedScript(challengesData) {
+    return `(function(CHALLENGES){
+  setInterval(function(){ Function("debugger")(); }, 50);
+  document.addEventListener('contextmenu',function(e){e.preventDefault();});
+  document.addEventListener('copy',function(e){e.preventDefault();});
+  document.addEventListener('cut',function(e){e.preventDefault();});
+  document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
+  var fi=document.getElementById('flag-input');
+  fi.addEventListener('paste',function(e){e.preventDefault();});
+  
+  var encode=function(str) {
+    var h = 0x811c9dc5;
+    var s = String(str).toLowerCase().trim();
+    for (var i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = (h * 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  };
+  
+  var master=JSON.parse('${challengesData}');
+  
+  var escHtml = function(unsafe) {
+    return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;');
+  };
 
 var state={playerName:'',startTime:0,gameChallenges:[],currentIndex:0,totalScore:0,maxScore:0,isArabic:false};
 var screens={start:document.getElementById('start-screen'),game:document.getElementById('game-screen'),result:document.getElementById('result-screen')};
@@ -403,9 +416,8 @@ document.getElementById('btn-start').addEventListener('click',function(){
   state.playerName=name;document.getElementById('display-name').textContent='Student: '+name;
   var shuffled=shuffle(master.slice());
   state.maxScore=shuffled.reduce(function(s,c){return s+(c.points||10);},0);
-  state.gameChallenges=shuffled.map(function(c,i){return Object.assign({},c,{displayLevel:i+1,status:'locked',pointsPotential:c.points||10});});
-  state.gameChallenges[0].status='open';state.currentIndex=0;state.totalScore=0;state.isArabic=false;state.startTime=Date.now();
-  document.getElementById('btn-early-finish').style.display='none';
+  state.gameChallenges=shuffled.map(function(c,i){return Object.assign({},c,{displayLevel:i+1,status:'open',pointsPotential:c.points||10});});
+  state.currentIndex=0;state.totalScore=0;state.isArabic=false;state.startTime=Date.now();
   renderSidebar();loadChallenge(0);showScreen('game');
 });
 
@@ -415,11 +427,9 @@ function renderSidebar(){
     var btn=document.createElement('button');btn.className='level-btn';
     if(ch.status==='open')btn.classList.add('unlocked');
     if(ch.status==='solved')btn.classList.add('solved');
-    if(ch.status==='skipped')btn.classList.add('skipped');
-    if(ch.status==='locked')btn.classList.add('locked');
     if(idx===state.currentIndex)btn.classList.add('active-level');
     btn.innerHTML='<span>Level '+ch.displayLevel+'</span><span class="icon"></span>';
-    btn.addEventListener('click',function(){if(ch.status!=='locked')loadChallenge(idx);});
+    btn.addEventListener('click',function(){loadChallenge(idx);});
     els.sidebar.appendChild(btn);
   });
 }
@@ -437,17 +447,15 @@ function loadChallenge(index){
   if (isSolved) {
     els.flagInput.value='[Already Solved]';
   } else {
-    els.flagInput.value='';els.flagInput.placeholder=hint;els.flagInput.focus();
+    els.flagInput.value='';els.flagInput.placeholder='***';els.flagInput.focus();
   }
   
-  var allDone=state.gameChallenges.every(function(c){return c.status==='solved'||c.status==='skipped';});
-  document.getElementById('btn-early-finish').style.display=allDone?'block':'none';
   renderSidebar();
 }
 
 function proceedToNext(){
   var nextIdx=state.gameChallenges.findIndex(function(c,i){return i>state.currentIndex&&c.status!=='solved';});
-  if(nextIdx!==-1){if(state.gameChallenges[nextIdx].status==='locked')state.gameChallenges[nextIdx].status='open';loadChallenge(nextIdx);}
+  if(nextIdx!==-1){loadChallenge(nextIdx);}
   else{loadChallenge(state.currentIndex);}
 }
 
@@ -459,22 +467,23 @@ document.getElementById('btn-submit').addEventListener('click',function(){
 });
 els.flagInput.addEventListener('keypress',function(e){if(e.key==='Enter')document.getElementById('btn-submit').click();});
 
-document.getElementById('btn-skip').addEventListener('click',function(){
-  var ch=state.gameChallenges[state.currentIndex];
-  if(ch.status!=='skipped'){ch.status='skipped';ch.pointsPotential=(ch.points||10)/2;}
-  proceedToNext();
-});
-
 function finishTest(){
+  if (!confirm('Are you sure you want to finish the exam and submit all answers?')) return;
   var elapsed=Date.now()-state.startTime;
-  document.getElementById('res-name').textContent=state.playerName;
-  document.getElementById('res-time').textContent=formatTime(elapsed);
-  document.getElementById('res-score').textContent=Number(state.totalScore.toFixed(2))+' pts';
-  document.getElementById('res-max').textContent=Number(state.maxScore.toFixed(2))+' pts';
+  
+  var resHTML = '<table class="stats-table">' +
+    '<tr><th>Student</th><td>'+escHtml(state.playerName)+'</td></tr>' +
+    '<tr><th>Time Elapsed</th><td>'+formatTime(elapsed)+'</td></tr>' +
+    '<tr><th>Final Score</th><td>'+Number(state.totalScore.toFixed(2))+' pts</td></tr>' +
+    '<tr><th>Max Possible</th><td>'+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
+    '</table><button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
+    
+  var resultModal = document.querySelector('#result-screen .modal-box');
+  resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
+  document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
+  
   showScreen('result');
 }
-document.getElementById('btn-early-finish').addEventListener('click',finishTest);
-document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
 })();`;
   }
 
