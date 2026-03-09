@@ -140,7 +140,8 @@
     if (!existing && !ans) return alert('An answer is required for new questions.');
 
     const newHash = ans ? window.CTF_DATA.encodeInput(ans) : existing.hash;
-    const updated = { id: newId, topic, points, q: qEn, qAr, format, hash: newHash };
+    const newAnsLen = ans ? ans.length : (existing.ansLen || 1);
+    const updated = { id: newId, topic, points, q: qEn, qAr, format, hash: newHash, ansLen: newAnsLen };
 
     if (existing) {
       // Edit fix: replace in array, do not append
@@ -234,8 +235,8 @@
   </div>
 
   <!-- CONFIRM MODAL -->
-  <div id="confirm-modal" class="screen" style="z-index:999;background:rgba(13,17,23,0.85);backdrop-filter:blur(4px);">
-    <div class="modal-box text-center" style="border:1px solid var(--border-color);max-width:320px;">
+  <div id="confirm-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(13,17,23,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="background:var(--panel-bg);border:1px solid var(--border-color);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);max-width:340px;width:90%;padding:32px;text-align:center;">
       <h2 style="font-size:18px;margin-bottom:12px;color:var(--text-bright);">Finish Exam?</h2>
       <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Are you sure you want to finish the exam and submit all answers? This action cannot be undone.</p>
       <div style="display:flex;gap:12px;">
@@ -300,6 +301,7 @@ setInterval(function(){ Function("debugger")(); }, 50);
 document.addEventListener('contextmenu',function(e){e.preventDefault();});
 document.addEventListener('copy',function(e){e.preventDefault();});
 document.addEventListener('cut',function(e){e.preventDefault();});
+document.addEventListener('paste',function(e){e.preventDefault();});
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
   <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'))}<\/script>
@@ -457,7 +459,7 @@ function renderSidebar(){
 function loadChallenge(index){
   state.currentIndex=index;var ch=state.gameChallenges[index];
   els.cardTopic.textContent=ch.topic;updateQuestionText();
-  var hint='*'.repeat(ch.hash.length/2);
+  var hint='*'.repeat(ch.ansLen||1);
   els.cardFormat.textContent='Required Format: '+ch.format+' ('+hint+')';
   
   var isSolved = ch.status === 'solved';
@@ -501,12 +503,17 @@ function finishTest(){
   resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
   document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
   
-  screens.confirm.classList.remove('active');
+  document.getElementById('confirm-modal').style.display='none';
   showScreen('result');
 }
 
-document.getElementById('btn-early-finish').addEventListener('click',function(){ screens.confirm.classList.add('active'); });
-document.getElementById('btn-confirm-no').addEventListener('click',function(){ screens.confirm.classList.remove('active'); });
+document.getElementById('btn-early-finish').addEventListener('click',function(){
+  var m=document.getElementById('confirm-modal');
+  m.style.display='flex';
+});
+document.getElementById('btn-confirm-no').addEventListener('click',function(){
+  document.getElementById('confirm-modal').style.display='none';
+});
 document.getElementById('btn-confirm-yes').addEventListener('click',finishTest);
 })();`;
   }
