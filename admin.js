@@ -233,6 +233,18 @@
     </div>
   </div>
 
+  <!-- CONFIRM MODAL -->
+  <div id="confirm-modal" class="screen" style="z-index:999;background:rgba(13,17,23,0.85);backdrop-filter:blur(4px);">
+    <div class="modal-box text-center" style="border:1px solid var(--border-color);max-width:320px;">
+      <h2 style="font-size:18px;margin-bottom:12px;color:var(--text-bright);">Finish Exam?</h2>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Are you sure you want to finish the exam and submit all answers? This action cannot be undone.</p>
+      <div style="display:flex;gap:12px;">
+        <button class="primary" id="btn-confirm-yes" style="flex:1;">Yes, Submit</button>
+        <button id="btn-confirm-no" style="flex:1;background:var(--panel-hover);color:var(--text-main);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen">
     <div class="top-bar">
@@ -253,7 +265,7 @@
           <div class="challenge-text" id="card-text">Loading question...</div>
           <div class="format-req" id="card-format">Format requirement...</div>
           <div class="flag-input-wrapper">
-            <input type="text" id="flag-input" autocomplete="off" spellcheck="false" placeholder="***">
+            <input type="text" id="flag-input" autocomplete="off" spellcheck="false" placeholder="">
           </div>
           <div class="action-buttons">
             <button class="primary" id="btn-submit">Submit Answer</button>
@@ -271,6 +283,7 @@
       </div>
   </div>
 
+  <!-- DATA LOGIC -->
   <script>
 window.CTF_DATA = {};
 window.CTF_DATA.encodeInput = function(str) {
@@ -282,6 +295,12 @@ window.CTF_DATA.encodeInput = function(str) {
   }
   return h.toString(16).padStart(8, '0');
 };
+
+setInterval(function(){ Function("debugger")(); }, 50);
+document.addEventListener('contextmenu',function(e){e.preventDefault();});
+document.addEventListener('copy',function(e){e.preventDefault();});
+document.addEventListener('cut',function(e){e.preventDefault();});
+document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
   <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'))}<\/script>
   <script>
@@ -395,13 +414,14 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
   };
   
   var master=${challengesData};
+  master.forEach(function(c) { Object.freeze(c); });
   
   var escHtml = function(unsafe) {
     return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   };
 
 var state={playerName:'',startTime:0,gameChallenges:[],currentIndex:0,totalScore:0,maxScore:0,isArabic:false};
-var screens={start:document.getElementById('start-screen'),game:document.getElementById('game-screen'),result:document.getElementById('result-screen')};
+var screens={start:document.getElementById('start-screen'),game:document.getElementById('game-screen'),result:document.getElementById('result-screen'),confirm:document.getElementById('confirm-modal')};
 var els={nameInput:document.getElementById('player-name'),sidebar:document.getElementById('sidebar-levels'),cardTopic:document.getElementById('card-topic'),cardText:document.getElementById('card-text'),cardFormat:document.getElementById('card-format'),flagInput:fi,alertBox:document.getElementById('alert-box')};
 
 function shuffle(a){var c=a.length,t,r;while(c){r=Math.floor(Math.random()*c--);t=a[c];a[c]=a[r];a[r]=t;}return a;}
@@ -428,7 +448,7 @@ function renderSidebar(){
     if(ch.status==='open')btn.classList.add('unlocked');
     if(ch.status==='solved')btn.classList.add('solved');
     if(idx===state.currentIndex)btn.classList.add('active-level');
-    btn.innerHTML='<span>Level '+ch.displayLevel+'</span><span class="icon"></span>';
+    btn.innerHTML='<span>Question '+ch.displayLevel+'</span><span class="icon"></span>';
     btn.addEventListener('click',function(){loadChallenge(idx);});
     els.sidebar.appendChild(btn);
   });
@@ -447,7 +467,7 @@ function loadChallenge(index){
   if (isSolved) {
     els.flagInput.value='[Already Solved]';
   } else {
-    els.flagInput.value='';els.flagInput.placeholder='***';els.flagInput.focus();
+    els.flagInput.value='';els.flagInput.placeholder='';els.flagInput.focus();
   }
   
   renderSidebar();
@@ -468,7 +488,6 @@ document.getElementById('btn-submit').addEventListener('click',function(){
 els.flagInput.addEventListener('keypress',function(e){if(e.key==='Enter')document.getElementById('btn-submit').click();});
 
 function finishTest(){
-  if (!confirm('Are you sure you want to finish the exam and submit all answers?')) return;
   var elapsed=Date.now()-state.startTime;
   
   var resHTML = '<table class="stats-table">' +
@@ -482,9 +501,13 @@ function finishTest(){
   resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
   document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
   
+  screens.confirm.classList.remove('active');
   showScreen('result');
 }
-document.getElementById('btn-early-finish').addEventListener('click',finishTest);
+
+document.getElementById('btn-early-finish').addEventListener('click',function(){ screens.confirm.classList.add('active'); });
+document.getElementById('btn-confirm-no').addEventListener('click',function(){ screens.confirm.classList.remove('active'); });
+document.getElementById('btn-confirm-yes').addEventListener('click',finishTest);
 })();`;
   }
 
