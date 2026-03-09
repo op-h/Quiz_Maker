@@ -199,10 +199,10 @@
     showAlert('Exam file downloaded: ' + a.download, true);
     var title = document.getElementById('exam-title').value.trim() || 'Custom Exam';
     var themeValue = localStorage.getItem('__theme') || 'dark';
-    
+
     // Grab latest styles
     var cssText = getEmbeddedCss();
-    
+
     // Inject custom challenges directly into script enclosure
     btn.textContent = 'Create Quiz File';
     btn.disabled = false;
@@ -283,7 +283,7 @@ window.CTF_DATA.encodeInput = function(str) {
   return h.toString(16).padStart(8, '0');
 };
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges, null, 2))}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'))}<\/script>
   <script>
     // Theme toggle for student exam
     (function(){
@@ -394,7 +394,7 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
     return h.toString(16).padStart(8, '0');
   };
   
-  var master=JSON.parse('${challengesData}');
+  var master=${challengesData};
   
   var escHtml = function(unsafe) {
     return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;');
