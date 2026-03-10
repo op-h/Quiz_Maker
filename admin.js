@@ -217,7 +217,7 @@
     const quizID = Math.random().toString(36).substr(2, 9);
     return `<!DOCTYPE html>
 <html lang="en">
-  <style>${getEmbeddedCss()}</style>
+  <style>${getEmbeddedCss(lockCopyPaste)}</style>
   <script>
     (function(){
       var id = "${quizID}";
@@ -368,11 +368,11 @@ document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.
   }
 
   // ─── Embedded CSS (dark + light theme in one) ─────────────────
-  function getEmbeddedCss() {
+  function getEmbeddedCss(lockCopyPaste) {
     return `:root{--bg-color:#0d1117;--panel-bg:#161b22;--panel-hover:#21262d;--border-color:#444c56;--text-main:#c9d1d9;--text-muted:#8b949e;--text-bright:#f0f6fc;--accent-primary:#58a6ff;--accent-primary-hover:#388bfd;--accent-success:#3fb950;--accent-success-hover:#2ea043;--accent-danger:#f85149;--accent-warning:#e3b341;--font-main:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--font-mono:'Courier New',monospace;--shadow-md:0 4px 12px rgba(0,0,0,.5);--shadow-lg:0 12px 32px rgba(0,0,0,.6);--radius-md:6px;--radius-lg:10px;--input-bg:#0d1117;--sidebar-bg:#161b22;--workspace-bg:#0d1117;--level-btn-hover:rgba(139,148,158,.08)}
 body.light{--bg-color:#f5f7fa;--panel-bg:#ffffff;--panel-hover:#f0f3f7;--border-color:#9eaab8;--text-main:#1f2328;--text-muted:#656d76;--text-bright:#1f2328;--accent-primary:#0969da;--accent-primary-hover:#0752b0;--accent-success:#1a7f37;--accent-success-hover:#14682e;--accent-danger:#cf222e;--accent-warning:#9a6700;--shadow-md:0 4px 12px rgba(0,0,0,.1);--input-bg:#fff;--sidebar-bg:#f5f7fa;--workspace-bg:#eaeef2;--level-btn-hover:rgba(31,35,40,.06)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg-color);color:var(--text-main);font-family:var(--font-main);display:flex;flex-direction:column;height:100vh;overflow:hidden;user-select:none;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
+body{background:var(--bg-color);color:var(--text-main);font-family:var(--font-main);display:flex;flex-direction:column;height:100vh;overflow:hidden;user-select:${lockCopyPaste ? 'none' : 'auto'};-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 input{user-select:auto}
 h1,h2,h3{color:var(--text-bright);font-weight:600}
 ::-webkit-scrollbar{width:7px}::-webkit-scrollbar-track{background:var(--bg-color)}::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:4px}
