@@ -500,8 +500,9 @@ function finishTest(){
     '<tr><th>Max Possible</th><td>'+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
     '</table>';
 
-  resHTML += '<div style="margin-top:24px;text-align:left;"><h3 style="font-size:16px;margin-bottom:12px;color:var(--text-bright);">Detailed Results</h3>';
-  resHTML += '<table class="stats-table" style="width:100%">' +
+  resHTML += '<div style="margin-top:24px;text-align:left;"><h3 style="font-size:16px;margin-bottom:12px;color:var(--text-bright);">Detailed Results</h3>' +
+    '<div style="max-height:300px;overflow-y:auto;border:1px solid var(--border-color);border-radius:var(--radius-md);">' +
+    '<table class="stats-table" style="width:100%;margin:0;">' +
     '<thead><tr><th style="width:10%">#</th><th style="width:40%">Topic</th><th style="width:30%">Your Answer</th><th style="width:20%">Status</th></tr></thead><tbody>';
   
   state.gameChallenges.forEach(function(ch){
@@ -513,7 +514,7 @@ function finishTest(){
       '<td>' + statusIcon + '</td>' +
       '</tr>';
   });
-  resHTML += '</tbody></table></div>';
+  resHTML += '</tbody></table></div></div>';
   resHTML += '<button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
     
   var resultModal = document.querySelector('#result-screen .modal-box');
