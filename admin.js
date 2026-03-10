@@ -246,6 +246,18 @@
     </div>
   </div>
 
+  <!-- DELETE CONFIRM MODAL -->
+  <div id="delete-confirm-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(13,17,23,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <div style="background:var(--panel-bg);border:1px solid var(--accent-danger);border-radius:var(--radius-lg);box-shadow:0 0 20px rgba(248,81,73,0.2);max-width:340px;width:90%;padding:32px;text-align:center;">
+      <h2 style="font-size:18px;margin-bottom:12px;color:#f85149;">Erase Everything?</h2>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">This will strictly delete all code and results from the browser. This action is PERMANENT and the file will break.</p>
+      <div style="display:flex;gap:12px;">
+        <button class="danger" id="btn-delete-yes" style="flex:1;">Yes, Erase</button>
+        <button id="btn-delete-no" style="flex:1;background:var(--panel-hover);color:var(--text-main);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen">
     <div class="top-bar">
@@ -522,10 +534,7 @@ function finishTest(){
   resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
   document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
   document.getElementById('btn-delete-all').addEventListener('click', function() {
-    document.body.innerHTML = '<div style="background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;">(Exam_Finish)</div>';
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.body.style.overflow = 'hidden';
+    document.getElementById('delete-confirm-modal').style.display = 'flex';
   });
   
   document.getElementById('confirm-modal').style.display='none';
@@ -540,6 +549,14 @@ document.getElementById('btn-confirm-no').addEventListener('click',function(){
   document.getElementById('confirm-modal').style.display='none';
 });
 document.getElementById('btn-confirm-yes').addEventListener('click',finishTest);
+document.getElementById('btn-delete-no').addEventListener('click',function(){
+  document.getElementById('delete-confirm-modal').style.display='none';
+});
+document.getElementById('btn-delete-yes').addEventListener('click',function(){
+  document.open();
+  document.write('<!DOCTYPE html><html><head><title>Exam Finished</title><style>body{background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;margin:0;}</style></head><body>(Exam_Finish)</body></html>');
+  document.close();
+});
 })();`;
   }
 
