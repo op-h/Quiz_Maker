@@ -211,13 +211,21 @@
 
   // ─── Build standalone HTML ────────────────────────────────────
   function buildExamHtml(examTitle) {
+    const quizID = Math.random().toString(36).substr(2, 9);
     return `<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escHtml(examTitle)}</title>
   <style>${getEmbeddedCss()}</style>
+  <script>
+    (function(){
+      var id = "${quizID}";
+      if(localStorage.getItem('exam_lock_' + id)){
+        document.open();
+        document.write('<!DOCTYPE html><html><head><title>Exam Finished</title><style>body{background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;margin:0;}</style></head><body>(Exam_Finish)</body></html>');
+        document.close();
+        if(window.stop) window.stop();
+      }
+    })();
+  </script>
 </head>
 <body>
 
@@ -316,7 +324,7 @@ document.addEventListener('cut',function(e){e.preventDefault();});
 document.addEventListener('paste',function(e){e.preventDefault();});
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'))}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID)}<\/script>
   <script>
     // Theme toggle for student exam
     (function(){
@@ -407,8 +415,9 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData) {
+  function getEmbeddedScript(challengesData, quizID) {
     return `(function(CHALLENGES){
+  var QUIZ_ID = "${quizID}";
   setInterval(function(){ Function("debugger")(); }, 50);
   document.addEventListener('contextmenu',function(e){e.preventDefault();});
   document.addEventListener('copy',function(e){e.preventDefault();});
@@ -553,6 +562,7 @@ document.getElementById('btn-delete-no').addEventListener('click',function(){
   document.getElementById('delete-confirm-modal').style.display='none';
 });
 document.getElementById('btn-delete-yes').addEventListener('click',function(){
+  try { localStorage.setItem('exam_lock_' + QUIZ_ID, '1'); } catch(e){}
   document.open();
   document.write('<!DOCTYPE html><html><head><title>Exam Finished</title><style>body{background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;margin:0;}</style></head><body>(Exam_Finish)</body></html>');
   document.close();
