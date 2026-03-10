@@ -182,13 +182,15 @@
       return alert('Add at least one question before generating the exam file.');
     }
 
-    // Read exam title from the teacher's input
+    // Read exam title and password from the teacher's input
     const examTitle = ($('exam-title').value || 'Custom Exam').trim();
+    const examPass = ($('exam-password').value || '').trim();
+    const passHash = examPass ? window.CTF_DATA.encodeInput(examPass) : null;
 
     btn.textContent = 'Generating...';
     btn.disabled = true;
 
-    const html = buildExamHtml(examTitle);
+    const html = buildExamHtml(examTitle, passHash);
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -210,7 +212,7 @@
   });
 
   // ─── Build standalone HTML ────────────────────────────────────
-  function buildExamHtml(examTitle) {
+  function buildExamHtml(examTitle, passHash) {
     const quizID = Math.random().toString(36).substr(2, 9);
     return `<!DOCTYPE html>
 <html lang="en">
@@ -238,6 +240,12 @@
         <label for="player-name">Student Name</label>
         <input type="text" id="player-name" autocomplete="off" spellcheck="false" placeholder="Your full name">
       </div>
+      ${passHash ? `
+      <div class="input-group">
+        <label for="exam-pass">Exam Password</label>
+        <input type="password" id="exam-pass" placeholder="Enter password to unlock">
+      </div>
+      ` : ''}
       <button class="primary" id="btn-start" style="width:100%;margin-top:4px">Start Exam</button>
     </div>
   </div>
@@ -324,7 +332,7 @@ document.addEventListener('cut',function(e){e.preventDefault();});
 document.addEventListener('paste',function(e){e.preventDefault();});
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID)}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash)}<\/script>
   <script>
     // Theme toggle for student exam
     (function(){
@@ -415,9 +423,10 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData, quizID) {
+  function getEmbeddedScript(challengesData, quizID, passHash) {
     return `(function(CHALLENGES){
   var QUIZ_ID = "${quizID}";
+  var PASS_HASH = ${passHash ? JSON.stringify(passHash) : 'null'};
   setInterval(function(){ Function("debugger")(); }, 50);
   document.addEventListener('contextmenu',function(e){e.preventDefault();});
   document.addEventListener('copy',function(e){e.preventDefault();});
@@ -456,6 +465,10 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
 
 document.getElementById('btn-start').addEventListener('click',function(){
   var name=els.nameInput.value.trim();if(!name)return alert('Please enter your name to begin.');
+  if(PASS_HASH){
+    var pInput=document.getElementById('exam-pass');
+    if(!pInput || encode(pInput.value)!==PASS_HASH) return alert('Incorrect exam password.');
+  }
   state.playerName=name;document.getElementById('display-name').textContent='Student: '+name;
   var shuffled=shuffle(master.slice());
   state.maxScore=shuffled.reduce(function(s,c){return s+(c.points||10);},0);
