@@ -516,10 +516,17 @@ function finishTest(){
   });
   resHTML += '</tbody></table></div></div>';
   resHTML += '<button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
+  resHTML += '<button class="danger" id="btn-delete-all" style="width:100%;margin-top:10px">Delete</button>';
     
   var resultModal = document.querySelector('#result-screen .modal-box');
   resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
   document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
+  document.getElementById('btn-delete-all').addEventListener('click', function() {
+    document.body.innerHTML = '<div style="background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;">(Exam_Finish)</div>';
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.overflow = 'hidden';
+  });
   
   document.getElementById('confirm-modal').style.display='none';
   showScreen('result');
