@@ -186,11 +186,12 @@
     const examTitle = ($('exam-title').value || 'Custom Exam').trim();
     const examPass = ($('exam-password').value || '').trim();
     const passHash = examPass ? window.CTF_DATA.encodeInput(examPass) : null;
+    const lockCopyPaste = $('lock-copy-paste').checked;
 
     btn.textContent = 'Generating...';
     btn.disabled = true;
 
-    const html = buildExamHtml(examTitle, passHash);
+    const html = buildExamHtml(examTitle, passHash, lockCopyPaste);
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -212,7 +213,7 @@
   });
 
   // ─── Build standalone HTML ────────────────────────────────────
-  function buildExamHtml(examTitle, passHash) {
+  function buildExamHtml(examTitle, passHash, lockCopyPaste) {
     const quizID = Math.random().toString(36).substr(2, 9);
     return `<!DOCTYPE html>
 <html lang="en">
@@ -335,13 +336,15 @@ window.CTF_DATA.encodeInput = function(str) {
 };
 
 setInterval(function(){ Function("debugger")(); }, 50);
+${lockCopyPaste ? `
 document.addEventListener('contextmenu',function(e){e.preventDefault();});
 document.addEventListener('copy',function(e){e.preventDefault();});
 document.addEventListener('cut',function(e){e.preventDefault();});
 document.addEventListener('paste',function(e){e.preventDefault();});
+` : ''}
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash)}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste)}<\/script>
   <script>
     // Theme toggle for student exam
     (function(){
@@ -432,17 +435,19 @@ button.theme-toggle{background:transparent;border:1px solid var(--border-color);
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData, quizID, passHash) {
+  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste) {
     return `(function(CHALLENGES){
   var QUIZ_ID = "${quizID}";
   var PASS_HASH = ${passHash ? JSON.stringify(passHash) : 'null'};
   setInterval(function(){ Function("debugger")(); }, 50);
+  ${lockCopyPaste ? `
   document.addEventListener('contextmenu',function(e){e.preventDefault();});
   document.addEventListener('copy',function(e){e.preventDefault();});
   document.addEventListener('cut',function(e){e.preventDefault();});
+  ` : ''}
   document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
   var fi=document.getElementById('flag-input');
-  fi.addEventListener('paste',function(e){e.preventDefault();});
+  ${lockCopyPaste ? `fi.addEventListener('paste',function(e){e.preventDefault();});` : ''}
   
   var encode=function(str) {
     var h = 0x811c9dc5;
