@@ -274,6 +274,15 @@
     </div>
   </div>
 
+  <!-- ERROR MODAL -->
+  <div id="error-modal" style="display:none;position:fixed;inset:0;z-index:10001;background:rgba(13,17,23,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+    <div style="background:var(--panel-bg);border:1px solid var(--accent-danger);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);max-width:340px;width:90%;padding:32px;text-align:center;">
+      <h2 style="font-size:18px;margin-bottom:12px;color:var(--accent-danger);">Error</h2>
+      <p id="error-msg" style="color:var(--text-muted);font-size:14px;margin-bottom:24px;"></p>
+      <button class="primary" id="btn-error-close" style="width:100%;">Close</button>
+    </div>
+  </div>
+
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen">
     <div class="top-bar">
@@ -463,11 +472,19 @@ function showAlert(msg,ok){els.alertBox.textContent=msg;els.alertBox.className='
 function updateQuestionText(){var ch=state.gameChallenges[state.currentIndex];if(!ch)return;var btn=document.getElementById('btn-translate');if(state.isArabic&&ch.qAr){els.cardText.textContent=ch.qAr;els.cardText.classList.add('rtl-text');btn.textContent='English';}else{els.cardText.textContent=ch.q;els.cardText.classList.remove('rtl-text');btn.textContent='Translate to Arabic';}}
 document.getElementById('btn-translate').addEventListener('click',function(){state.isArabic=!state.isArabic;updateQuestionText();});
 
-document.getElementById('btn-start').addEventListener('click',function(){
-  var name=els.nameInput.value.trim();if(!name)return alert('Please enter your name to begin.');
+  function showError(msg){
+    document.getElementById('error-msg').textContent=msg;
+    document.getElementById('error-modal').style.display='flex';
+  }
+  document.getElementById('btn-error-close').addEventListener('click',function(){
+    document.getElementById('error-modal').style.display='none';
+  });
+
+  document.getElementById('btn-start').addEventListener('click',function(){
+  var name=els.nameInput.value.trim();if(!name)return showError('Please enter your name to begin.');
   if(PASS_HASH){
     var pInput=document.getElementById('exam-pass');
-    if(!pInput || encode(pInput.value)!==PASS_HASH) return alert('Incorrect exam password.');
+    if(!pInput || encode(pInput.value)!==PASS_HASH) return showError('Incorrect exam password.');
   }
   state.playerName=name;document.getElementById('display-name').textContent='Student: '+name;
   var shuffled=shuffle(master.slice());
