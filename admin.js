@@ -438,7 +438,7 @@ document.getElementById('btn-start').addEventListener('click',function(){
   state.playerName=name;document.getElementById('display-name').textContent='Student: '+name;
   var shuffled=shuffle(master.slice());
   state.maxScore=shuffled.reduce(function(s,c){return s+(c.points||10);},0);
-  state.gameChallenges=shuffled.map(function(c,i){return Object.assign({},c,{displayLevel:i+1,status:'open',pointsPotential:c.points||10});});
+  state.gameChallenges=shuffled.map(function(c,i){return Object.assign({},c,{displayLevel:i+1,status:'open',pointsPotential:c.points||10,studentAnswer:''});});
   state.currentIndex=0;state.totalScore=0;state.isArabic=false;state.startTime=Date.now();
   renderSidebar();loadChallenge(0);showScreen('game');
 });
@@ -484,6 +484,7 @@ function proceedToNext(){
 document.getElementById('btn-submit').addEventListener('click',function(){
   var ans=els.flagInput.value;var ch=state.gameChallenges[state.currentIndex];
   if(ch.status==='solved') return showAlert('Already solved.', true);
+  ch.studentAnswer = ans;
   if(encode(ans)===ch.hash){state.totalScore+=ch.pointsPotential;ch.status='solved';showAlert('Answer accepted.',true);setTimeout(proceedToNext,800);}
   else{showAlert('Incorrect answer. Try again.',false);}
 });
@@ -497,7 +498,23 @@ function finishTest(){
     '<tr><th>Time Elapsed</th><td>'+formatTime(elapsed)+'</td></tr>' +
     '<tr><th>Final Score</th><td>'+Number(state.totalScore.toFixed(2))+' pts</td></tr>' +
     '<tr><th>Max Possible</th><td>'+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
-    '</table><button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
+    '</table>';
+
+  resHTML += '<div style="margin-top:24px;text-align:left;"><h3 style="font-size:16px;margin-bottom:12px;color:var(--text-bright);">Detailed Results</h3>';
+  resHTML += '<table class="stats-table" style="width:100%">' +
+    '<thead><tr><th style="width:10%">#</th><th style="width:40%">Topic</th><th style="width:30%">Your Answer</th><th style="width:20%">Status</th></tr></thead><tbody>';
+  
+  state.gameChallenges.forEach(function(ch){
+    var statusIcon = ch.status === 'solved' ? '<span style="color:var(--accent-success)">● Correct</span>' : '<span style="color:var(--accent-danger)">○ Unsolved</span>';
+    resHTML += '<tr>' +
+      '<td>' + ch.displayLevel + '</td>' +
+      '<td>' + escHtml(ch.topic) + '</td>' +
+      '<td style="font-family:var(--font-mono);font-size:12px;">' + (ch.studentAnswer ? escHtml(ch.studentAnswer) : '<i style="color:var(--text-muted)">None</i>') + '</td>' +
+      '<td>' + statusIcon + '</td>' +
+      '</tr>';
+  });
+  resHTML += '</tbody></table></div>';
+  resHTML += '<button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
     
   var resultModal = document.querySelector('#result-screen .modal-box');
   resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
