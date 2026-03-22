@@ -75,7 +75,11 @@ challenges.js   → Shared question utilities
 
 ## Screenshots
 
-> TODO — drop screenshots here once you have them
+<img width="2533" height="892" alt="{17C61B62-5ECB-40C0-80C6-2EE3A6F45A97}" src="https://github.com/user-attachments/assets/849912af-8199-448b-a029-5442b0242161" />
+<img width="1138" height="768" alt="{8555FCF7-55E9-4C33-9E8C-8B22D172E00A}" src="https://github.com/user-attachments/assets/2f5db86d-a908-4aa7-8d82-9b79e0d4edd5" />
+
+
+
 
 ---
 
