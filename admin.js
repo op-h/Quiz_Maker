@@ -836,47 +836,8 @@ document.getElementById('btn-submit').addEventListener('click',function(){
 function finishTest(){
   var elapsed=Date.now()-state.startTime;
   
-  // Recalculate Score to include MCQs newly graded
+  // 1. Calculate Score BEFORE rendering
   state.totalScore = 0;
-  
-  var resHTML = '<div style="display:flex;justify-content:center;margin-bottom:24px;">' +
-    '<table style="width:100%;max-width:450px;border-collapse:collapse;background:var(--panel-hover);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);">' +
-    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;width:50%;">Student</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+escHtml(state.playerName)+'</td></tr>' +
-    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Attempts</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+(state.attempts||1)+'</td></tr>' +
-    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Time Elapsed</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+formatTime(elapsed)+'</td></tr>' +
-    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Final Score</th><td id="final-score-display" style="padding:14px 20px;text-align:right;font-weight:600;color:var(--accent-primary);font-size:16px;">-</td></tr>' +
-    '<tr><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Max Possible</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-muted);">'+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
-    '</table></div>';
-
-  resHTML += '<div style="margin-top:24px;text-align:left;"><h3 style="font-size:18px;margin-bottom:12px;color:var(--text-bright);border-bottom:1px solid var(--border-color);padding-bottom:8px;">Detailed Results</h3>' +
-    '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border-color);border-radius:var(--radius-md);box-shadow:0 10px 30px rgba(0,0,0,0.2);background:var(--panel-hover);">' +
-    '<table style="width:100%;border-collapse:collapse;font-size:14px;text-align:left;">' +
-    '<thead style="position:sticky;top:0;background:var(--panel-bg);box-shadow:0 1px 0 var(--border-color);z-index:10;">' +
-      '<tr><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:8%">#</th><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:27%">Topic</th><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:45%">Your Answer</th><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:20%">Status</th></tr>' +
-    '</thead><tbody>';
-  
-  window._markCorrect = function(id) {
-    var c = state.gameChallenges.find(function(x){return x.id === id;});
-    if(c && c.status === 'pending'){
-      c.status='solved'; state.totalScore+=c.pointsPotential;
-      document.getElementById('final-score-display').textContent = Number(state.totalScore.toFixed(2)) + ' pts';
-      var txt = document.getElementById('status-text-'+id);
-      if(txt) txt.outerHTML = '<span style="color:var(--accent-success)">● Correct</span>';
-      var evTarget = event.target || event.srcElement;
-      if(evTarget && evTarget.parentElement) evTarget.parentElement.style.display='none';
-    }
-  };
-  window._markWrong = function(id) {
-    var c = state.gameChallenges.find(function(x){return x.id === id;});
-    if(c && c.status === 'pending'){
-      c.status='incorrect';
-      var txt = document.getElementById('status-text-'+id);
-      if(txt) txt.outerHTML = '<span style="color:var(--accent-danger)">○ Incorrect</span>';
-      var evTarget = event.target || event.srcElement;
-      if(evTarget && evTarget.parentElement) evTarget.parentElement.style.display='none';
-    }
-  };
-
   state.gameChallenges.forEach(function(ch){
     if (ch.type === 'mcq' && ch.status === 'answered') {
       if (encode(ch.studentAnswer) === ch.hash) {
@@ -888,7 +849,50 @@ function finishTest(){
     } else if (ch.status === 'solved') {
       state.totalScore += ch.pointsPotential;
     }
-    
+  });
+
+  // 2. Build Results HTML with ACTUAL score
+  var resHTML = '<div style="display:flex;justify-content:center;margin-bottom:24px;">' +
+    '<table style="width:100%;max-width:450px;border-collapse:collapse;background:var(--panel-hover);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);">' +
+    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;width:50%;">Student</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+escHtml(state.playerName)+'</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Attempts</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+(state.attempts||1)+'</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Time Elapsed</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+formatTime(elapsed)+'</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Final Score</th><td id="final-score-display" style="padding:14px 20px;text-align:right;font-weight:600;color:var(--accent-primary);font-size:16px;">'+Number(state.totalScore.toFixed(2))+' pts</td></tr>' +
+    '<tr><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Max Possible</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-muted);">'+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
+    '</table></div>';
+
+  resHTML += '<div style="margin-top:24px;text-align:left;"><h3 style="font-size:18px;margin-bottom:12px;color:var(--text-bright);border-bottom:1px solid var(--border-color);padding-bottom:8px;">Detailed Results</h3>' +
+    '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border-color);border-radius:var(--radius-md);box-shadow:0 10px 30px rgba(0,0,0,0.2);background:var(--panel-hover);">' +
+    '<table style="width:100%;border-collapse:collapse;font-size:14px;text-align:left;">' +
+    '<thead style="position:sticky;top:0;background:var(--panel-bg);box-shadow:0 1px 0 var(--border-color);z-index:10;">' +
+      '<tr><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:8%">#</th><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:27%">Topic</th><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:45%">Your Answer</th><th style="padding:12px 16px;color:var(--text-muted);font-weight:600;width:20%">Status</th></tr>' +
+    '</thead><tbody>';
+  
+  // 3. Define Grading Logic in global scope (for onclick)
+  window._markCorrect = function(id) {
+    var c = state.gameChallenges.find(function(x){return x.id === id;});
+    if(c && c.status === 'pending'){
+      c.status='solved'; state.totalScore+=c.pointsPotential;
+      var scoreEl = document.getElementById('final-score-display');
+      if(scoreEl) scoreEl.textContent = Number(state.totalScore.toFixed(2)) + ' pts';
+      var txt = document.getElementById('status-text-'+id);
+      if(txt) txt.outerHTML = '<span style="color:var(--accent-success)">● Correct</span>';
+      var evTarget = event.target || event.srcElement;
+      if(evTarget && evTarget.closest('div')) evTarget.closest('div').style.display='none';
+    }
+  };
+  window._markWrong = function(id) {
+    var c = state.gameChallenges.find(function(x){return x.id === id;});
+    if(c && c.status === 'pending'){
+      c.status='incorrect';
+      var txt = document.getElementById('status-text-'+id);
+      if(txt) txt.outerHTML = '<span style="color:var(--accent-danger)">○ Incorrect</span>';
+      var evTarget = event.target || event.srcElement;
+      if(evTarget && evTarget.closest('div')) evTarget.closest('div').style.display='none';
+    }
+  };
+
+  state.gameChallenges.forEach(function(ch){
     var statusIcon;
     var gradingActions = '';
     if (ch.status === 'solved') {
@@ -909,8 +913,6 @@ function finishTest(){
       '<td style="padding:12px 16px;">' + statusIcon + gradingActions + '</td>' +
       '</tr>';
   });
-  
-  resHTML = resHTML.replace('id="final-score-display">-</td>', 'id="final-score-display">'+Number(state.totalScore.toFixed(2))+' pts</td>');
   
   resHTML += '</tbody></table></div></div>';
   resHTML += '<button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
