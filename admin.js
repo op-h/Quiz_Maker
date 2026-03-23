@@ -307,12 +307,13 @@
     const examPass = ($('exam-password').value || '').trim();
     const passHash = examPass ? window.CTF_DATA.encodeInput(examPass) : null;
     const lockCopyPaste = $('lock-copy-paste').checked;
+    const examMode = $('exam-mode').checked;
 
     btn.textContent = 'Generating... (Fetching dependencies if needed)';
     btn.disabled = true;
 
     try {
-      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste);
+      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode);
       const blob = new Blob([html], { type: 'text/html' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -332,7 +333,7 @@
   });
 
   // ─── Build standalone HTML ────────────────────────────────────
-  async function buildExamHtml(examTitle, passHash, lockCopyPaste) {
+  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode) {
     const quizID = Math.random().toString(36).substr(2, 9);
     
     // Check if we need Python
@@ -358,7 +359,7 @@
   <meta charset="UTF-8">
   <title>${escHtml(examTitle)}</title>
   ${pythonEngine}
-  <style>${getEmbeddedCss(lockCopyPaste)}</style>
+  <style>${getEmbeddedCss(lockCopyPaste, examMode)}</style>
   <script>
     (function(){
       var id = "${quizID}";
@@ -425,6 +426,15 @@
     </div>
   </div>
 
+  ${examMode ? `
+  <!-- ANTI-SCREENSHOT OVERLAY -->
+  <div id="anti-screenshot-overlay" style="display:none;position:fixed;inset:0;z-index:2147483647;background:#000;color:var(--accent-danger);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:20px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+    <h1 style="font-family:var(--font-mono);font-size:32px;margin-bottom:16px;">FOCUS LOST</h1>
+    <p style="font-family:var(--font-mono);font-size:16px;line-height:1.5;">The exam screen has lost focus.<br>Please click anywhere here to resume your exam.</p>
+  </div>
+  ` : ''}
+
   <!-- GAME SCREEN -->
   <div id="game-screen" class="screen">
     <div class="top-bar">
@@ -484,7 +494,7 @@ document.addEventListener('paste',function(e){e.preventDefault();});
 ` : ''}
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste)}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode)}<\/script>
 </body>
 </html>`;
   }
@@ -494,7 +504,7 @@ document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.
   }
 
   // ─── Embedded CSS (dark + light theme in one) ─────────────────
-  function getEmbeddedCss(lockCopyPaste) {
+  function getEmbeddedCss(lockCopyPaste, examMode) {
     return `:root{--bg-color:#0a0e13;--panel-bg:#111620;--panel-hover:#1a2030;--border-color:#2a3448;--border-glow:#3d5a80;--text-main:#c9d1d9;--text-muted:#6e7f94;--text-bright:#e8f0fe;--accent-primary:#58a6ff;--accent-primary-hover:#388bfd;--accent-success:#39d353;--accent-success-hover:#2ea043;--accent-danger:#ff4444;--accent-warning:#e3b341;--htb-green:#9fef00;--font-main:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--font-mono:'JetBrains Mono','Fira Code','Courier New',monospace;--shadow-md:0 4px 16px rgba(0,0,0,.7);--shadow-lg:0 16px 48px rgba(0,0,0,.8);--glow-blue:0 0 20px rgba(88,166,255,.15);--radius-md:6px;--radius-lg:10px;--input-bg:#060a0f;--sidebar-bg:#0d1219;--workspace-bg:#0a0e13;--level-btn-hover:rgba(88,166,255,.06)}
 body.light{--bg-color:#f0f2f5;--panel-bg:#fff;--panel-hover:#f0f3f7;--border-color:#9eaab8;--border-glow:#6b8cba;--text-main:#1f2328;--text-muted:#656d76;--text-bright:#1f2328;--accent-primary:#0969da;--accent-primary-hover:#0752b0;--accent-success:#1a7f37;--accent-danger:#cf222e;--accent-warning:#9a6700;--htb-green:#2da44e;--shadow-md:0 4px 12px rgba(0,0,0,.1);--shadow-lg:0 12px 32px rgba(0,0,0,.14);--glow-blue:none;--input-bg:#fff;--sidebar-bg:#f5f7fa;--workspace-bg:#eaeef2;--level-btn-hover:rgba(31,35,40,.06)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -573,7 +583,7 @@ button:disabled{opacity:.4;cursor:not-allowed;pointer-events:none;transform:none
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste) {
+  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode) {
     return `(function(CHALLENGES){
   var QUIZ_ID = "${quizID}";
   var PASS_HASH = ${passHash ? JSON.stringify(passHash) : 'null'};
@@ -650,6 +660,31 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
   if (state.gameChallenges.length > 0) {
     loadChallenge(0);
     showScreen('game');
+    
+    // Auto-enter Fullscreen and setup Anti-Screenshot blur if Exam Mode enabled
+    ${examMode ? `
+    var elem = document.documentElement;
+    if (elem.requestFullscreen) { elem.requestFullscreen().catch(function(err){}); }
+    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen().catch(function(err){}); }
+    
+    // Anti-screenshot observer (binds only after start)
+    window.addEventListener('blur', function() {
+      document.getElementById('anti-screenshot-overlay').style.display = 'flex';
+      setTimeout(function(){ navigator.clipboard.writeText(''); }, 10);
+    });
+    window.addEventListener('focus', function() {
+      document.getElementById('anti-screenshot-overlay').style.display = 'none';
+      if (!document.fullscreenElement && elem.requestFullscreen) {
+        elem.requestFullscreen().catch(function(err){});
+      }
+    });
+    document.addEventListener('keyup', function(e) {
+      if (e.key === 'PrintScreen') {
+        navigator.clipboard.writeText('');
+        showAlert('Screenshots are disabled during the exam!', false);
+      }
+    });
+    ` : ''}
   } else {
     showError('This exam contains no questions! Please contact the instructor.');
   }
@@ -927,6 +962,17 @@ function finishTest(){
   
   document.getElementById('confirm-modal').style.display='none';
   showScreen('result');
+  
+  // Auto-exit fullscreen on finish
+  ${examMode ? `
+  if (document.exitFullscreen && document.fullscreenElement) {
+    document.exitFullscreen().catch(function(err){});
+  } else if (document.webkitExitFullscreen) {
+    document.webkitExitFullscreen().catch(function(err){});
+  }
+  // Optional: remove blur listener if we want them to screenshot the results
+  // We'll leave it simple for now; losing focus on results shouldn't matter as much, but let's keep it clean.
+  ` : ''}
 }
 
 document.getElementById('btn-early-finish').addEventListener('click',function(){
