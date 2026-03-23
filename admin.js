@@ -665,92 +665,104 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
     showScreen('game');
     
     ${examMode ? `
-    // ── Strict Exam Mode ─────────────────────────────────────────
+    // ── Strict Exam Mode ──────────────────────────────────────────
     _examActive = true;
     _overlay = document.getElementById('anti-screenshot-overlay');
-    
-    // Enter fullscreen (must be called inside user gesture context)
+
+    // ── CSS: hide all content when overlay is active (screenshot sees only black) ──
+    var _secureStyle = document.createElement('style');
+    _secureStyle.textContent = [
+      '#anti-screenshot-overlay { display:none; }',
+      'body.exam-locked > *:not(#anti-screenshot-overlay) { filter: blur(30px) brightness(0) !important; user-select:none !important; pointer-events:none; }',
+      '@media print { body { display:none !important; } }'
+    ].join('');
+    document.head.appendChild(_secureStyle);
+
     function _enterFS() {
       var el = document.documentElement;
       var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
       if (req) { try { req.call(el); } catch(e){} }
     }
     _enterFS();
-    
-    // Show the black FOCUS LOST overlay
+
     function _lockScreen() {
       if (!_examActive) return;
+      document.body.classList.add('exam-locked');
       if (_overlay) _overlay.style.display = 'flex';
     }
-    
-    // Hide overlay and re-enter fullscreen
+
     function _unlockScreen() {
+      document.body.classList.remove('exam-locked');
       if (_overlay) _overlay.style.display = 'none';
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        _enterFS();
-      }
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) { _enterFS(); }
     }
-    
-    // Page Visibility API: fires when user switches tabs, opens Snipping Tool, etc.
+
+    // Layer 1: Page Visibility API
     document.addEventListener('visibilitychange', function() {
-      if (document.hidden) { _lockScreen(); } else { _unlockScreen(); }
+      if (document.hidden) _lockScreen(); else _unlockScreen();
     });
-    
-    // window.blur/focus: catches Alt+Tab, clicking other windows
+
+    // Layer 2: window blur/focus (Alt+Tab, other apps)
     window.addEventListener('blur', function() { _lockScreen(); });
     window.addEventListener('focus', function() { _unlockScreen(); });
-    
-    // Polling: detect focus loss every 150ms. Catches Win+Shift+S which doesn't always fire blur.
-    _focusPollInterval = setInterval(function() {
-      if (!_examActive) { clearInterval(_focusPollInterval); return; }
+
+    // Layer 3: requestAnimationFrame loop — 60fps focus check
+    // This is the fastest possible polling, catching Win+Shift+S within one frame
+    (function _rafCheck() {
+      if (!_examActive) return;
       if (!document.hasFocus() || document.hidden) { _lockScreen(); }
-    }, 150);
-    
-    // Handle Escape: re-enter fullscreen and show overlay (can't truly block Escape in fullscreen)
+      else { /* keep unlocked only if we explicitly know focus is here */ }
+      _focusPollInterval = requestAnimationFrame(_rafCheck);
+    })();
+
+    // Layer 4: mouseleave — Snipping Tool forces cursor to crosshair outside browser
+    document.addEventListener('mouseleave', function() {
+      if (_examActive) _lockScreen();
+    });
+    document.addEventListener('mouseenter', function() {
+      if (_examActive && document.hasFocus()) _unlockScreen();
+    });
+
+    // Layer 5: fullscreenchange — Escape key exit
     document.addEventListener('fullscreenchange', function() {
-      if (!document.fullscreenElement && _examActive) { _lockScreen(); }
+      if (!document.fullscreenElement && _examActive) _lockScreen();
     });
     document.addEventListener('webkitfullscreenchange', function() {
-      if (!document.webkitFullscreenElement && _examActive) { _lockScreen(); }
+      if (!document.webkitFullscreenElement && _examActive) _lockScreen();
     });
-    
-    // Overlay click re-enters fullscreen and hides overlay
+
+    // Overlay click: resume exam
     if (_overlay) {
       _overlay.addEventListener('click', function() {
         _enterFS();
-        setTimeout(function() { _unlockScreen(); }, 300);
+        setTimeout(_unlockScreen, 300);
       });
     }
-    
-    // Block Escape, F11 keys (to discourage exiting fullscreen)
+
+    // Block Escape, F11 to prevent fullscreen exit
     document.addEventListener('keydown', function(e) {
-      // Block F11, Escape (fullscreen exit attempts)
       if (e.key === 'F11' || e.key === 'Escape') {
-        e.preventDefault();
-        e.stopPropagation();
-        // If they pressed Escape which exited fullscreen, re-enter it
-        setTimeout(function() {
-          if (!document.fullscreenElement && _examActive) { _lockScreen(); }
-        }, 50);
+        e.preventDefault(); e.stopPropagation();
+        setTimeout(function() { if (!document.fullscreenElement && _examActive) _lockScreen(); }, 50);
       }
-      // Block Mac screenshot shortcuts
+      // Mac screenshot combos
       if (e.metaKey && e.shiftKey && '345sS'.includes(e.key)) {
         e.preventDefault();
+        _lockScreen();
         showAlert('Screenshots are not allowed during this exam.', false);
       }
-    });
-    
-    // PrintScreen: wipe clipboard immediately
+    }, true); // useCapture=true intercepts before most handlers
+
+    // PrintScreen: wipe clipboard
     document.addEventListener('keyup', function(e) {
       if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        _lockScreen();
         try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText('').catch(function(){});
-          }
-          var dummy = document.createElement('textarea');
-          dummy.value = ''; document.body.appendChild(dummy); dummy.select();
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText('').catch(function(){});
+          var d = document.createElement('textarea'); d.value = '';
+          document.body.appendChild(d); d.select();
           try { document.execCommand('copy'); } catch(ex){}
-          document.body.removeChild(dummy);
+          document.body.removeChild(d);
         } catch(ex){}
         showAlert('Screenshots are not allowed during this exam.', false);
       }
