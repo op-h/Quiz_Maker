@@ -661,27 +661,88 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
     loadChallenge(0);
     showScreen('game');
     
-    // Auto-enter Fullscreen and setup Anti-Screenshot blur if Exam Mode enabled
     ${examMode ? `
-    var elem = document.documentElement;
-    if (elem.requestFullscreen) { elem.requestFullscreen().catch(function(err){}); }
-    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen().catch(function(err){}); }
+    // ── Strict Exam Mode ─────────────────────────────────────────
+    var _examActive = true;
+    var _overlay = document.getElementById('anti-screenshot-overlay');
     
-    // Anti-screenshot observer (binds only after start)
-    window.addEventListener('blur', function() {
-      document.getElementById('anti-screenshot-overlay').style.display = 'flex';
-      setTimeout(function(){ navigator.clipboard.writeText(''); }, 10);
+    // Enter fullscreen (must be synchronous inside user gesture context)
+    function _enterFS() {
+      var el = document.documentElement;
+      var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (req) { try { req.call(el); } catch(e){} }
+    }
+    _enterFS();
+    
+    // Show the black FOCUS LOST overlay
+    function _lockScreen() {
+      if (!_examActive) return;
+      if (_overlay) _overlay.style.display = 'flex';
+    }
+    
+    // Hide overlay and re-enter fullscreen
+    function _unlockScreen() {
+      if (_overlay) _overlay.style.display = 'none';
+      // If fullscreen was lost, re-enter it
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        _enterFS();
+      }
+    }
+    
+    // Page Visibility API: fires when user switches tabs, opens Snipping Tool, etc.
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) { _lockScreen(); } else { _unlockScreen(); }
     });
-    window.addEventListener('focus', function() {
-      document.getElementById('anti-screenshot-overlay').style.display = 'none';
-      if (!document.fullscreenElement && elem.requestFullscreen) {
-        elem.requestFullscreen().catch(function(err){});
+    
+    // window.blur: fires when window loses focus (some screenshot tools, Alt+Tab, etc.)
+    window.addEventListener('blur', function() { _lockScreen(); });
+    window.addEventListener('focus', function() { _unlockScreen(); });
+    
+    // Handle fullscreen exit (user pressed Escape)
+    document.addEventListener('fullscreenchange', function() {
+      if (!document.fullscreenElement && _examActive) {
+        _lockScreen(); // Show warning until they click back
       }
     });
+    document.addEventListener('webkitfullscreenchange', function() {
+      if (!document.webkitFullscreenElement && _examActive) {
+        _lockScreen();
+      }
+    });
+    
+    // Overlay click re-enters fullscreen and hides overlay
+    if (_overlay) {
+      _overlay.addEventListener('click', function() {
+        _enterFS();
+        setTimeout(function() { _unlockScreen(); }, 300);
+      });
+    }
+    
+    // PrintScreen key: wipe clipboard (best effort) and block
     document.addEventListener('keyup', function(e) {
-      if (e.key === 'PrintScreen') {
-        navigator.clipboard.writeText('');
-        showAlert('Screenshots are disabled during the exam!', false);
+      if (e.key === 'PrintScreen' || e.keyCode === 44) {
+        // Try all available clipboard APIs
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText('').catch(function(){});
+        }
+        // Copy a blank span to replace any screenshot data
+        var dummy = document.createElement('textarea');
+        dummy.value = '';
+        document.body.appendChild(dummy);
+        dummy.select();
+        try { document.execCommand('copy'); } catch(ex){}
+        document.body.removeChild(dummy);
+        showAlert('Screenshots are not allowed during this exam.', false);
+      }
+    });
+    
+    // Keyboard shortcut blockers for OS-level screenshot combos
+    document.addEventListener('keydown', function(e) {
+      // Windows: Win+Shift+S (we can't truly block Win key, but block Shift+S variants)
+      // Meta+Shift+3 / Meta+Shift+4 / Meta+Shift+5 (Mac screenshots)
+      if (e.metaKey && e.shiftKey && ('345sS'.includes(e.key))) {
+        e.preventDefault();
+        showAlert('Screenshots are not allowed during this exam.', false);
       }
     });
     ` : ''}
@@ -963,15 +1024,16 @@ function finishTest(){
   document.getElementById('confirm-modal').style.display='none';
   showScreen('result');
   
-  // Auto-exit fullscreen on finish
+  // Auto-exit fullscreen on finish and disable exam protections
   ${examMode ? `
-  if (document.exitFullscreen && document.fullscreenElement) {
-    document.exitFullscreen().catch(function(err){});
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen().catch(function(err){});
-  }
-  // Optional: remove blur listener if we want them to screenshot the results
-  // We'll leave it simple for now; losing focus on results shouldn't matter as much, but let's keep it clean.
+  _examActive = false; // Disable overlay triggers for result screen
+  if (typeof _overlay !== 'undefined' && _overlay) { _overlay.style.display = 'none'; }
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) { document.exitFullscreen(); }
+      else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+    }
+  } catch(e) {}
   ` : ''}
 }
 
