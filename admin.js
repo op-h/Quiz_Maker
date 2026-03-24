@@ -617,7 +617,7 @@ var screens={start:document.getElementById('start-screen'),game:document.getElem
 var els={nameInput:document.getElementById('player-name'),sidebar:document.getElementById('sidebar-levels'),cardTopic:document.getElementById('card-topic'),cardText:document.getElementById('card-text'),answerArea:document.getElementById('answer-area'),alertBox:document.getElementById('alert-box')};
 
 // Exam Mode state (declared at IIFE scope so finishTest can access them)
-${examMode ? 'var _examActive = false; var _overlay = null; var _focusPollInterval = null;' : ''}
+${examMode ? 'var _examActive = false; var _overlay = null; var _focusPollInterval = null; var _keyBlocker = null;' : ''}
 
 // Setup Theme Toggle
 var btnTheme=document.getElementById('btn-theme');
@@ -739,11 +739,21 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
       });
     }
 
-    // Block Escape, F11 to prevent fullscreen exit
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'F11' || e.key === 'Escape') {
-        e.preventDefault(); e.stopPropagation();
-        setTimeout(function() { if (!document.fullscreenElement && _examActive) _lockScreen(); }, 50);
+    // Block Escape + F11 during exam using a named function (so we can removeEventListener later)
+    _keyBlocker = function(e) {
+      if (e.key === 'F11') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        // Browser will still exit fullscreen on Escape — immediately re-enter and show overlay
+        setTimeout(function() {
+          if (_examActive) { _lockScreen(); _enterFS(); }
+        }, 60);
+        return false;
       }
       // Mac screenshot combos
       if (e.metaKey && e.shiftKey && '345sS'.includes(e.key)) {
@@ -751,7 +761,8 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
         _lockScreen();
         showAlert('Screenshots are not allowed during this exam.', false);
       }
-    }, true); // useCapture=true intercepts before most handlers
+    };
+    document.addEventListener('keydown', _keyBlocker, true); // capture phase, highest priority
 
     // PrintScreen: wipe clipboard
     document.addEventListener('keyup', function(e) {
