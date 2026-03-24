@@ -591,10 +591,11 @@ ${enableTimer ? '.timer-display { font-family: var(--font-mono); font-size: 16px
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes) {
+  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash) {
     return `(function(CHALLENGES){
   var QUIZ_ID = "${quizID}";
   var PASS_HASH = ${passHash ? JSON.stringify(passHash) : 'null'};
+  var TEACHER_PASS_HASH = ${teacherPassHash ? JSON.stringify(teacherPassHash) : 'null'};
   setInterval(function(){ Function("debugger")(); }, 50);
   ${lockCopyPaste ? `
   document.addEventListener('contextmenu',function(e){e.preventDefault();});
