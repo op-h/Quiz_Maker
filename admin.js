@@ -306,6 +306,8 @@
     const examTitle = ($('exam-title').value || 'Custom Exam').trim();
     const examPass = ($('exam-password').value || '').trim();
     const passHash = examPass ? window.CTF_DATA.encodeInput(examPass) : null;
+    const teacherPass = ($('teacher-password').value || '').trim();
+    const teacherPassHash = teacherPass ? window.CTF_DATA.encodeInput(teacherPass) : null;
     const lockCopyPaste = $('lock-copy-paste').checked;
     const examMode = $('exam-mode').checked;
     const enableTimer = $('enable-timer').checked;
@@ -315,7 +317,7 @@
     btn.disabled = true;
 
     try {
-      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes);
+      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash);
       const blob = new Blob([html], { type: 'text/html' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -335,7 +337,7 @@
   });
 
   // ─── Build standalone HTML ────────────────────────────────────
-  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes) {
+  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash) {
     const quizID = Math.random().toString(36).substr(2, 9);
     
     // Check if we need Python
@@ -497,7 +499,7 @@ document.addEventListener('paste',function(e){e.preventDefault();});
 ` : ''}
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes)}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash)}<\/script>
 </body>
 </html>`;
   }
@@ -1106,11 +1108,43 @@ function finishTest(){
   resHTML += '<button class="danger" id="btn-delete-all" style="width:100%;margin-top:10px">Delete</button>';
     
   var resultModal = document.querySelector('#result-screen .modal-box');
-  resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
-  document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
-  document.getElementById('btn-delete-all').addEventListener('click', function() {
-    document.getElementById('delete-confirm-modal').style.display = 'flex';
-  });
+  
+  if (TEACHER_PASS_HASH) {
+    resultModal.innerHTML = '<h1>Exam Complete</h1>' +
+      '<div id="teacher-auth-area" style="margin-top:20px;padding:24px;background:var(--workspace-bg);border:1px solid var(--border-color);border-radius:var(--radius-md);">' +
+      '<h3 style="color:var(--text-bright);margin-bottom:8px;">Instructor Review Required</h3>' +
+      '<p style="color:var(--text-muted);margin-bottom:16px;font-size:14px;">Please ask your instructor to unlock the detailed results and grading controls.</p>' +
+      '<div style="display:flex;gap:10px;justify-content:center;">' +
+      '<input type="password" id="teacher-unlock-pass" placeholder="Teacher Password" style="padding:10px 14px;background:var(--input-bg);border:1px solid var(--border-color);color:white;border-radius:4px;width:220px;font-family:var(--font-mono);">' +
+      '<button class="primary" id="btn-unlock-results">Unlock Results</button>' +
+      '</div><div id="teacher-unlock-error" style="color:var(--accent-danger);font-size:12px;margin-top:10px;display:none;">Incorrect password.</div></div>' +
+      '<div id="detailed-results-container" style="display:none;width:100%;">' + resHTML + '</div>';
+      
+    document.getElementById('btn-unlock-results').addEventListener('click', function() {
+      var p = document.getElementById('teacher-unlock-pass').value;
+      if (encode(p) === TEACHER_PASS_HASH) {
+        document.getElementById('teacher-auth-area').style.display = 'none';
+        document.getElementById('detailed-results-container').style.display = 'block';
+        document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
+        document.getElementById('btn-delete-all').addEventListener('click', function() { document.getElementById('delete-confirm-modal').style.display = 'flex'; });
+      } else {
+        document.getElementById('teacher-unlock-error').style.display = 'block';
+        document.getElementById('teacher-unlock-pass').value = '';
+      }
+    });
+    
+    // Allow pressing enter on password field
+    document.getElementById('teacher-unlock-pass').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') document.getElementById('btn-unlock-results').click();
+    });
+
+  } else {
+    resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
+    document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
+    document.getElementById('btn-delete-all').addEventListener('click', function() {
+      document.getElementById('delete-confirm-modal').style.display = 'flex';
+    });
+  }
   
   document.getElementById('confirm-modal').style.display='none';
   showScreen('result');

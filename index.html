@@ -426,10 +426,17 @@
             <label>Exam Title</label>
             <input type="text" id="exam-title" placeholder="e.g. HTML & CSS Quiz" value="Custom Exam">
           </div>
+        </div>
+        <div class="form-row" style="margin-top: 10px;">
           <div class="form-group">
-            <label>Exam Password (optional)</label>
-            <input type="password" id="exam-password" placeholder="Leave empty for no password">
+            <label>Exam Start Password (optional)</label>
+            <input type="password" id="exam-password" placeholder="Leave empty to let anyone start">
             <small>If set, students must enter this to start.</small>
+          </div>
+          <div class="form-group">
+            <label>Teacher Grading Password (optional)</label>
+            <input type="password" id="teacher-password" placeholder="Leave empty to let anyone view results">
+            <small>If set, required to unlock the detailed results table at the end.</small>
           </div>
         </div>
         <div class="form-row" style="margin-top: 10px;">
