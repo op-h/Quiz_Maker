@@ -742,30 +742,54 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
       });
     }
 
-    // Block Escape + F11 during exam using a named function (so we can removeEventListener later)
+    // ── Key Blocker: Escape + F11 (named so we can remove it on finish) ──
+    // NOTE: F11 is handled by browsers BEFORE JS fires, so we can't always block it.
+    // Strategy: block what we can on keydown, AND aggressively react to fullscreenchange.
     _keyBlocker = function(e) {
       if (e.key === 'F11') {
         e.preventDefault();
+        e.stopPropagation();
         e.stopImmediatePropagation();
         return false;
       }
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         e.stopImmediatePropagation();
-        // Browser will still exit fullscreen on Escape — immediately re-enter and show overlay
-        setTimeout(function() {
-          if (_examActive) { _lockScreen(); _enterFS(); }
-        }, 60);
+        // Re-enter + show overlay after the browser processes the Escape exit
+        setTimeout(function() { if (_examActive) { _lockScreen(); _enterFS(); } }, 80);
         return false;
       }
       // Mac screenshot combos
       if (e.metaKey && e.shiftKey && '345sS'.includes(e.key)) {
-        e.preventDefault();
-        _lockScreen();
+        e.preventDefault(); _lockScreen();
         showAlert('Screenshots are not allowed during this exam.', false);
       }
     };
-    document.addEventListener('keydown', _keyBlocker, true); // capture phase, highest priority
+    // Register on BOTH document AND window in capture phase for maximum interception
+    document.addEventListener('keydown', _keyBlocker, true);
+    window.addEventListener('keydown', _keyBlocker, true);
+    // Also block on keyup — covers browsers that fire F11 toggle after keyup not keydown
+    document.addEventListener('keyup', function(e) {
+      if ((e.key === 'F11' || e.key === 'Escape') && _examActive) {
+        e.preventDefault(); e.stopImmediatePropagation();
+      }
+    }, true);
+
+    // ── Fullscreen Change: PRIMARY DEFENSE ──────────────────────────
+    // This fires regardless of HOW the student exited fullscreen (F11, Escape, browser button).
+    // Re-enter and lock immediately. Then try again after 200ms and 600ms to cover timing gaps.
+    function _onFsChange() {
+      if (!_examActive) return;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        _lockScreen();
+        _enterFS();
+        setTimeout(function() { if (_examActive && !document.fullscreenElement) { _lockScreen(); _enterFS(); } }, 200);
+        setTimeout(function() { if (_examActive && !document.fullscreenElement) { _lockScreen(); _enterFS(); } }, 600);
+      }
+    }
+    document.addEventListener('fullscreenchange', _onFsChange);
+    document.addEventListener('webkitfullscreenchange', _onFsChange);
 
     // PrintScreen: wipe clipboard
     document.addEventListener('keyup', function(e) {
