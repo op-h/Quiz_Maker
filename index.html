@@ -439,9 +439,19 @@
           </div>
           <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
             <input type="checkbox" id="exam-mode" checked style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
-            <label for="exam-mode" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Strict Exam Mode (Fullscreen auto-lock & Anti-Screenshot blur)</label>
+            <label for="exam-mode" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Strict Exam Mode (Fullscreen auto-lock &amp; Anti-Screenshot blur)</label>
           </div>
         </div>
+        <div class="form-row" style="margin-top: 10px; align-items: flex-end;">
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px; flex: 0 0 auto;">
+            <input type="checkbox" id="enable-timer" style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
+            <label for="enable-timer" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Enable Exam Timer</label>
+          </div>
+          <div class="form-group" style="flex: 0 0 200px;">
+            <label>Duration (minutes)</label>
+            <input type="number" id="exam-timer-minutes" min="1" max="300" value="60" placeholder="e.g. 60" style="width: 100%;">
+            <small>Auto-submits when time is up.</small>
+          </div>
       </div>
 
       <!-- List Section -->

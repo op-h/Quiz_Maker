@@ -308,12 +308,14 @@
     const passHash = examPass ? window.CTF_DATA.encodeInput(examPass) : null;
     const lockCopyPaste = $('lock-copy-paste').checked;
     const examMode = $('exam-mode').checked;
+    const enableTimer = $('enable-timer').checked;
+    const timerMinutes = parseInt($('exam-timer-minutes').value, 10) || 60;
 
     btn.textContent = 'Generating... (Fetching dependencies if needed)';
     btn.disabled = true;
 
     try {
-      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode);
+      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes);
       const blob = new Blob([html], { type: 'text/html' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -333,7 +335,7 @@
   });
 
   // ─── Build standalone HTML ────────────────────────────────────
-  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode) {
+  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes) {
     const quizID = Math.random().toString(36).substr(2, 9);
     
     // Check if we need Python
@@ -359,7 +361,7 @@
   <meta charset="UTF-8">
   <title>${escHtml(examTitle)}</title>
   ${pythonEngine}
-  <style>${getEmbeddedCss(lockCopyPaste, examMode)}</style>
+  <style>${getEmbeddedCss(lockCopyPaste, examMode, enableTimer)}</style>
   <script>
     (function(){
       var id = "${quizID}";
@@ -441,6 +443,7 @@
       <div class="brand">${escHtml(examTitle)}</div>
       <div class="player-info" id="display-name">Student: &mdash;</div>
       <div style="display:flex;align-items:center;gap:10px;">
+        ${enableTimer ? `<div id="exam-timer" class="timer-display">--:--</div>` : ''}
         <button class="theme-toggle" id="btn-theme">Light Mode</button>
         <button class="success" id="btn-early-finish">Submit All Answers</button>
       </div>
@@ -494,7 +497,7 @@ document.addEventListener('paste',function(e){e.preventDefault();});
 ` : ''}
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode)}<\/script>
+  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes)}<\/script>
 </body>
 </html>`;
   }
@@ -504,7 +507,7 @@ document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.
   }
 
   // ─── Embedded CSS (dark + light theme in one) ─────────────────
-  function getEmbeddedCss(lockCopyPaste, examMode) {
+  function getEmbeddedCss(lockCopyPaste, examMode, enableTimer) {
     return `:root{--bg-color:#0a0e13;--panel-bg:#111620;--panel-hover:#1a2030;--border-color:#2a3448;--border-glow:#3d5a80;--text-main:#c9d1d9;--text-muted:#6e7f94;--text-bright:#e8f0fe;--accent-primary:#58a6ff;--accent-primary-hover:#388bfd;--accent-success:#39d353;--accent-success-hover:#2ea043;--accent-danger:#ff4444;--accent-warning:#e3b341;--htb-green:#9fef00;--font-main:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--font-mono:'JetBrains Mono','Fira Code','Courier New',monospace;--shadow-md:0 4px 16px rgba(0,0,0,.7);--shadow-lg:0 16px 48px rgba(0,0,0,.8);--glow-blue:0 0 20px rgba(88,166,255,.15);--radius-md:6px;--radius-lg:10px;--input-bg:#060a0f;--sidebar-bg:#0d1219;--workspace-bg:#0a0e13;--level-btn-hover:rgba(88,166,255,.06)}
 body.light{--bg-color:#f0f2f5;--panel-bg:#fff;--panel-hover:#f0f3f7;--border-color:#9eaab8;--border-glow:#6b8cba;--text-main:#1f2328;--text-muted:#656d76;--text-bright:#1f2328;--accent-primary:#0969da;--accent-primary-hover:#0752b0;--accent-success:#1a7f37;--accent-danger:#cf222e;--accent-warning:#9a6700;--htb-green:#2da44e;--shadow-md:0 4px 12px rgba(0,0,0,.1);--shadow-lg:0 12px 32px rgba(0,0,0,.14);--glow-blue:none;--input-bg:#fff;--sidebar-bg:#f5f7fa;--workspace-bg:#eaeef2;--level-btn-hover:rgba(31,35,40,.06)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -541,13 +544,13 @@ button:disabled{opacity:.4;cursor:not-allowed;pointer-events:none;transform:none
 .top-bar{width:100%;height:54px;background:var(--panel-bg);border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0;z-index:10}
 .brand{color:var(--accent-primary);font-weight:700;font-size:13px;font-family:var(--font-mono);letter-spacing:.5px;text-transform:uppercase}
 .player-info{color:var(--text-muted);font-size:13px;font-family:var(--font-mono)}
+${enableTimer ? '.timer-display { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--accent-warning); background: rgba(227, 179, 65, 0.1); padding: 4px 12px; border-radius: 4px; border: 1px solid var(--accent-warning); letter-spacing: 1px; } .timer-display.danger { color: var(--accent-danger); border-color: var(--accent-danger); background: rgba(255, 68, 68, 0.1); animation: pulse 1s infinite; } @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }' : ''}
 #game-screen{flex-direction:column;justify-content:flex-start;align-items:stretch;padding:0;height:100%;width:100%}
 .game-layout{display:flex;flex:1;overflow:hidden;width:100%}
 .sidebar{width:240px;min-width:240px;background:var(--sidebar-bg);border-right:1px solid var(--border-color);overflow-y:auto;flex-shrink:0;padding:16px 0 12px;order:-1}
 .sidebar::before{content:'QUESTIONS';display:block;padding:0 20px 12px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-muted);font-family:var(--font-mono);border-bottom:1px solid var(--border-color);margin-bottom:8px}
 .level-btn{width:100%;padding:12px 20px;border:none;border-radius:0;border-left:2px solid transparent;background:transparent;color:var(--text-muted);font-size:12px;font-weight:500;font-family:var(--font-mono);text-align:left;display:flex;justify-content:space-between;align-items:center;box-shadow:none;transition:all .15s ease;letter-spacing:.2px;text-transform:none}
 .level-btn:hover{background:var(--level-btn-hover);color:var(--text-bright);border-left-color:var(--border-glow);transform:none;box-shadow:none}
-.level-btn .icon{width:7px;height:7px;border-radius:50%;background:var(--border-color);flex-shrink:0;transition:background .2s,box-shadow .2s}
 .level-btn.locked{color:var(--border-color);cursor:default}.level-btn.unlocked{color:var(--text-main)}.level-btn.unlocked .icon{background:var(--text-muted)}
 .level-btn.active-level{border-left-color:var(--accent-primary);background:rgba(88,166,255,.07);color:var(--accent-primary);font-weight:600}
 .level-btn.active-level .icon{background:var(--accent-primary);box-shadow:0 0 8px rgba(88,166,255,.7)}
@@ -586,7 +589,7 @@ button:disabled{opacity:.4;cursor:not-allowed;pointer-events:none;transform:none
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode) {
+  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes) {
     return `(function(CHALLENGES){
   var QUIZ_ID = "${quizID}";
   var PASS_HASH = ${passHash ? JSON.stringify(passHash) : 'null'};
@@ -619,8 +622,9 @@ var state={playerName:'',startTime:0,gameChallenges:[],currentIndex:0,totalScore
 var screens={start:document.getElementById('start-screen'),game:document.getElementById('game-screen'),result:document.getElementById('result-screen'),confirm:document.getElementById('confirm-modal')};
 var els={nameInput:document.getElementById('player-name'),sidebar:document.getElementById('sidebar-levels'),cardTopic:document.getElementById('card-topic'),cardText:document.getElementById('card-text'),answerArea:document.getElementById('answer-area'),alertBox:document.getElementById('alert-box')};
 
-// Exam Mode state (declared at IIFE scope so finishTest can access them)
+// Exam Settings & State
 ${examMode ? 'var _examActive = false; var _overlay = null; var _focusPollInterval = null; var _keyBlocker = null;' : ''}
+${enableTimer ? 'var _examTimerInterval = null; var _examEndTime = 0;' : ''}
 
 // Setup Theme Toggle
 var btnTheme=document.getElementById('btn-theme');
@@ -805,6 +809,33 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
         showAlert('Screenshots are not allowed during this exam.', false);
       }
     });
+    ` : ''}
+
+    ${enableTimer ? `
+    // ── Timer Logic ─────────────────────────────────────────────
+    var durationMs = ${timerMinutes} * 60 * 1000;
+    _examEndTime = Date.now() + durationMs;
+    var timerEl = document.getElementById('exam-timer');
+    
+    function updateTimer() {
+      var remaining = _examEndTime - Date.now();
+      if (remaining <= 0) {
+        clearInterval(_examTimerInterval);
+        timerEl.textContent = '00:00';
+        finishTest(); // Auto-submit!
+        return;
+      }
+      var totalSecs = Math.floor(remaining / 1000);
+      var m = Math.floor(totalSecs / 60);
+      var s = totalSecs % 60;
+      timerEl.textContent = (m < 10 ? '0'+m : m) + ':' + (s < 10 ? '0'+s : s);
+      
+      if (remaining <= 60000 && !timerEl.classList.contains('danger')) {
+        timerEl.classList.add('danger'); // Make it red & pulse at 1 minute
+      }
+    }
+    updateTimer(); // Initial call
+    _examTimerInterval = setInterval(updateTimer, 1000);
     ` : ''}
   } else {
     showError('This exam contains no questions! Please contact the instructor.');
