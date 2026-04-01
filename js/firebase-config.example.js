@@ -9,13 +9,13 @@
 // 4. Create a "Realtime Database" and set its rules to True for read/write.
 
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDW1OZW3Qvfyt-R-qualw8UW6723QQOXQU",
-  authDomain: "live-online-exam1.firebaseapp.com",
-  projectId: "live-online-exam1",
-  databaseURL: "https://live-online-exam1-default-rtdb.europe-west1.firebasedatabase.app",
-  storageBucket: "live-online-exam1.firebasestorage.app",
-  messagingSenderId: "867407534345",
-  appId: "1:867407534345:web:6ff7be969f025bf0305bd8"
+  apiKey: "YOUR_API_KEY_HERE",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.europe-west1.firebasedatabase.app",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // Initialize Firebase if the SDK is loaded (in both admin and take.html)

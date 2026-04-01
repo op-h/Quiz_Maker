@@ -6,18 +6,18 @@
 
 /* ─── DARK theme (default) ─────────────────── */
 :root {
-  --bg-color:    #0a0e13;
-  --panel-bg:    #111620;
-  --panel-hover: #1a2030;
-  --border-color: #2a3448;
-  --border-glow:  #3d5a80;
+  --bg-color:    #050505;
+  --panel-bg:    rgba(10, 15, 10, 0.6);
+  --panel-hover: rgba(20, 30, 20, 0.7);
+  --border-color: rgba(60, 80, 60, 0.5);
+  --border-glow:  rgba(159, 239, 0, 0.6);
 
-  --text-main:   #c9d1d9;
-  --text-muted:  #6e7f94;
-  --text-bright: #e8f0fe;
+  --text-main:   #b0c0b0;
+  --text-muted:  #6e7f6e;
+  --text-bright: #ffffff;
 
-  --accent-primary:       #58a6ff;
-  --accent-primary-hover: #388bfd;
+  --accent-primary:       #9fef00;
+  --accent-primary-hover: #b4ff20;
   --accent-success:       #39d353;
   --accent-success-hover: #2ea043;
   --accent-danger:        #ff4444;
@@ -25,11 +25,10 @@
   --accent-warning:       #e3b341;
   --accent-warning-hover: #d29922;
 
-  /* HTB green hint — for terminal flavor */
   --htb-green:  #9fef00;
   --htb-green2: #a4e854;
 
-  --accent-blue:  #58a6ff;
+  --accent-blue:  #9fef00;
   --accent-green: #39d353;
   --accent-red:   #ff4444;
 
@@ -37,23 +36,24 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
 
   --shadow-sm:  0 1px 3px rgba(0,0,0,.8);
-  --shadow-md:  0 4px 16px rgba(0,0,0,.7);
-  --shadow-lg:  0 16px 48px rgba(0,0,0,.8);
-  --glow-blue:  0 0 20px rgba(88,166,255,.15);
+  --shadow-md:  0 4px 16px rgba(0,0,0,.9);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,.95);
+  --glow-blue:  0 0 20px rgba(159, 239, 0, 0.15);
   --glow-green: 0 0 20px rgba(57,211,83,.15);
 
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 10px;
 
-  --input-bg:       #060a0f;
-  --sidebar-bg:     #0d1219;
-  --workspace-bg:   #0a0e13;
-  --level-btn-hover: rgba(88,166,255,.06);
+  --input-bg:       rgba(5, 10, 5, 0.8);
+  --sidebar-bg:     rgba(5, 10, 5, 0.7);
+  --workspace-bg:   transparent;
+  --level-btn-hover: rgba(159, 239, 0, 0.1);
 }
 
 /* ─── LIGHT theme override ──────────────────── */
 body.light {
+  /* Minimal override, cyber theme thrives in dark */
   --bg-color:    #f0f2f5;
   --panel-bg:    #ffffff;
   --panel-hover: #f0f3f7;
@@ -66,30 +66,10 @@ body.light {
 
   --accent-primary:       #0969da;
   --accent-primary-hover: #0752b0;
-  --accent-success:       #1a7f37;
-  --accent-success-hover: #14682e;
-  --accent-danger:        #cf222e;
-  --accent-danger-hover:  #a40e26;
-  --accent-warning:       #9a6700;
-  --accent-warning-hover: #7d5400;
-
-  --htb-green:  #2da44e;
-  --htb-green2: #1a7f37;
-
-  --accent-blue:  #0969da;
-  --accent-green: #1a7f37;
-  --accent-red:   #cf222e;
-
-  --shadow-sm:  0 1px 3px rgba(0,0,0,.12);
-  --shadow-md:  0 4px 12px rgba(0,0,0,.1);
-  --shadow-lg:  0 12px 32px rgba(0,0,0,.14);
-  --glow-blue:  none;
-  --glow-green: none;
 
   --input-bg:       #ffffff;
   --sidebar-bg:     #f5f7fa;
   --workspace-bg:   #eaeef2;
-  --level-btn-hover: rgba(31,35,40,.06);
 }
 
 /* ─── Reset ─────────────────────────────────── */
@@ -106,10 +86,9 @@ body {
   user-select: none;
   -webkit-font-smoothing: antialiased;
   transition: background .2s, color .2s;
-  /* Subtle grid background — HTB style */
   background-image:
-    linear-gradient(rgba(88,166,255,.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(88,166,255,.02) 1px, transparent 1px);
+    linear-gradient(rgba(159, 239, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(159, 239, 0, 0.04) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
@@ -647,3 +626,5 @@ button.theme-toggle:hover {
   .translate-btn { top: 16px; right: 16px; }
   .action-buttons button { flex: 1; }
 }
+/* Glassmorphism overrides */
+.admin-card, .modal-box, .challenge-card, .top-bar, .sidebar, .admin-sidebar { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
