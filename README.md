@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎓 Quiz Maker
+#  Quiz Maker
 
 ### Secure Exam Builder & Live Online Portal
 
@@ -27,13 +27,13 @@
 
 <br>
 
-## ⚡ Features at a Glance
+##  Features at a Glance
 
 <table>
 <tr>
 <td width="50%">
 
-### 🖥️ Admin Dashboard
+###  Admin Dashboard
 - Drag-and-drop question builder
 - MCQ, Text, and Code question types
 - File attachment support (images, PDFs, code)
@@ -44,7 +44,7 @@
 </td>
 <td width="50%">
 
-### 🔒 Exam Security Suite
+###  Exam Security Suite
 - Fullscreen enforcement
 - Focus/blur detection with overlay lock
 - Keyboard shortcut blocking (F11, Esc, PrtScn)
@@ -57,7 +57,7 @@
 <tr>
 <td width="50%">
 
-### 📡 Live Online Exams
+###  Live Online Exams
 - Real-time Firebase-powered sessions
 - Live leaderboard with scores & completion times
 - 6-character exam codes for students to join
@@ -68,7 +68,7 @@
 </td>
 <td width="50%">
 
-### 💻 Code Execution
+###  Code Execution
 - **Python** — runs via Skulpt (no server needed)
 - **JavaScript** — executed live in the browser
 - **HTML** — rendered in an inline preview pane
@@ -85,7 +85,7 @@
 
 <br>
 
-## 🎯 Question Types
+##  Question Types
 
 | Type | Description | Grading |
 |:---|:---|:---|
@@ -101,7 +101,7 @@
 
 <br>
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Building an Exam (Offline)
 
@@ -175,7 +175,7 @@ const FIREBASE_CONFIG = {
 
 <br>
 
-## 🏗️ Project Structure
+##  Project Structure
 
 ```
 Quiz_Maker/
@@ -201,7 +201,7 @@ Quiz_Maker/
 
 <br>
 
-## 🖼️ Screenshots
+##  Screenshots
 
 <div align="center">
 
@@ -217,7 +217,7 @@ Quiz_Maker/
 
 <br>
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 <div align="center">
 
