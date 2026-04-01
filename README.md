@@ -1,88 +1,248 @@
-# Quiz Maker — Exam Builder
+<div align="center">
 
-A fully offline, browser-based exam builder and student exam runner. Built for programming lab exams where you need to run your own show without depending on any backend.
+# 🎓 Quiz Maker
 
----
+### Secure Exam Builder & Live Online Portal
 
-## What it does
+[![Live Demo](https://img.shields.io/badge/Live_Demo-op--h.github.io-58a6ff?style=for-the-badge&logo=github&logoColor=white)](https://op-h.github.io/Quiz_Maker/)
+[![Firebase](https://img.shields.io/badge/Firebase-Realtime_DB-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
+[![License](https://img.shields.io/badge/License-MIT-39d353?style=for-the-badge)](LICENSE)
+[![JavaScript](https://img.shields.io/badge/Vanilla-JavaScript-e3b341?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-You build exams in the admin panel, export them as a single `.html` file, then hand that file to students. That's it. No server, no internet required during the exam, no accounts. Everything runs locally in the browser.
+<br>
 
-Students get a locked-down experience — the exam tracks their answers, runs their code, and submits everything at the end. You review manually from the results panel.
+<p>
+  <strong>Build exams in a premium admin dashboard. Export as offline HTML or host live sessions with real-time leaderboards.</strong>
+  <br>
+  No server. No accounts. No backend. Everything runs in the browser.
+</p>
 
----
+<br>
 
-## Question types
+<img width="90%" alt="Admin Dashboard" src="https://github.com/user-attachments/assets/849912af-8199-448b-a029-5442b0242161" />
 
-**Multiple choice** — classic MCQ. Students pick one answer. You set which one is correct. Feedback is held until they submit everything.
-
-**Text answer** — student types a free answer. You can set a format hint (shown as dashes in the input box) and an optional hint badge below the question.
-
-**Code challenge** — student writes code directly in the exam. Supports:
-- Python (runs via Skulpt — no server needed)
-- JavaScript (executed live in the browser)
-- HTML (rendered in a preview pane)
-
----
-
-## How to use it
-
-### Building an exam
-
-1. Open `index.html` in your browser
-2. Add questions using the sidebar
-3. Configure the exam title, password (optional), and whether to lock copy-paste
-4. Hit **Generate Output** — it downloads a standalone `.html` file
-
-### Running an exam
-
-Just open the downloaded `.html` file. If you set a password, students enter it to unlock. Once they start, the exam is locked to that browser session.
-
-At the end they click **Submit All Answers** and a results screen shows everything they answered. Teachers can review code submissions and manually mark them correct or incorrect.
+</div>
 
 ---
 
-## Stack
+<br>
 
-Nothing fancy. Vanilla HTML, CSS, and JavaScript for everything. Skulpt is fetched and embedded at build time for Python execution (needs internet once, when you generate the exam file).
+## ⚡ Features at a Glance
 
-The admin panel uses `localStorage` to persist questions between sessions so you don't lose your work if you close the tab.
+<table>
+<tr>
+<td width="50%">
+
+### 🖥️ Admin Dashboard
+- Drag-and-drop question builder
+- MCQ, Text, and Code question types
+- File attachment support (images, PDFs, code)
+- Arabic translation with one click
+- Light & dark mode toggle
+- LocalStorage persistence — never lose your work
+
+</td>
+<td width="50%">
+
+### 🔒 Exam Security Suite
+- Fullscreen enforcement
+- Focus/blur detection with overlay lock
+- Keyboard shortcut blocking (F11, Esc, PrtScn)
+- Clipboard wiping & paste prevention
+- Anti-screenshot overlay
+- Copy-paste lock (optional)
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 📡 Live Online Exams
+- Real-time Firebase-powered sessions
+- Live leaderboard with scores & completion times
+- 6-character exam codes for students to join
+- Auto-submit on timer expiry
+- Teacher dashboard with live student tracking
+- Graceful exam termination with data preservation
+
+</td>
+<td width="50%">
+
+### 💻 Code Execution
+- **Python** — runs via Skulpt (no server needed)
+- **JavaScript** — executed live in the browser
+- **HTML** — rendered in an inline preview pane
+- Code verification with expected output matching
+- Syntax-highlighted editor with Run button
+
+</td>
+</tr>
+</table>
+
+<br>
 
 ---
 
-## Features worth noting
+<br>
 
-- **Completely offline** — the generated exam file is self-contained
-- **Python code execution** — actually runs `print()` and shows output, powered by Skulpt
-- **Copy-paste lock** — optional setting that blocks right-click, copy, and paste
-- **Light / dark mode** — works in both, with a toggle in the corner
-- **Arabic translation** — translate questions to Arabic with one click (via browser API)
-- **Optional hints** — teachers can add a hint that students can reveal
-- **Attempt counter** — tracks how many times the exam was retried
+## 🎯 Question Types
+
+| Type | Description | Grading |
+|:---|:---|:---|
+| **Multiple Choice** | Classic MCQ — students pick one answer from shuffled options | Auto-graded on submit |
+| **Text Answer** | Free text input with format hints and optional hint badges | Auto-graded against hashed answer |
+| **Code Challenge** | Write & run Python, JavaScript, or HTML directly in the exam | Manual review by teacher |
+
+> All question types support **file attachments** — attach images, PDFs, or reference code that students can download during the exam.
+
+<br>
 
 ---
 
-## Project structure
+<br>
+
+## 🚀 Getting Started
+
+### Building an Exam (Offline)
 
 ```
-index.html      → Admin exam builder
-style.css       → Shared styles (dark/light theme)
-admin.js        → Builder logic + exam file generation
-challenges.js   → Shared question utilities
+1.  Open index.html in your browser
+2.  Add questions using the sidebar navigation
+3.  Configure title, password, timer, and security settings
+4.  Click "Export Offline HTML" → downloads a standalone exam file
 ```
 
+### Hosting a Live Exam (Online)
+
+```
+1.  Set up Firebase (see Configuration below)
+2.  Add your questions in the builder
+3.  Click "Host Live Exam" → generates a 6-character exam code
+4.  Share the code — students join at take.html
+5.  Monitor live progress on the teacher dashboard
+6.  Click "End Exam" when done → results are preserved
+```
+
+### Taking an Exam (Student)
+
+```
+1.  Open the .html file (offline) or navigate to take.html (online)
+2.  Enter your name and exam password (if required)
+3.  Answer questions — use the sidebar to navigate
+4.  Click "Submit All Answers" when finished
+```
+
+<br>
+
 ---
 
-## Screenshots
+<br>
 
-<img width="2533" height="892" alt="{17C61B62-5ECB-40C0-80C6-2EE3A6F45A97}" src="https://github.com/user-attachments/assets/849912af-8199-448b-a029-5442b0242161" />
-<img width="1138" height="768" alt="{8555FCF7-55E9-4C33-9E8C-8B22D172E00A}" src="https://github.com/user-attachments/assets/2f5db86d-a908-4aa7-8d82-9b79e0d4edd5" />
+## 🔧 Configuration
 
+### Firebase Setup (for Live Exams only)
 
+<details>
+<summary><strong>Click to expand Firebase setup instructions</strong></summary>
 
+<br>
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+2. Create a free project
+3. Add a **Web App** to get your config keys
+4. Create a **Realtime Database** and set rules to allow read/write
+5. Copy your config into `js/firebase-config.js`:
+
+```javascript
+const FIREBASE_CONFIG = {
+  apiKey: "your-api-key",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project-id",
+  databaseURL: "https://your-project-default-rtdb.firebasedatabase.app",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "your-sender-id",
+  appId: "your-app-id"
+};
+```
+
+> **Note:** Firebase web API keys are designed to be client-side. Secure your data using [Firebase Security Rules](https://firebase.google.com/docs/database/security), not by hiding the config.
+
+</details>
+
+<br>
 
 ---
 
-## Credits
+<br>
 
-Designed and built by **oph**
+## 🏗️ Project Structure
+
+```
+Quiz_Maker/
+│
+├── index.html              → Admin exam builder dashboard
+├── take.html               → Live online exam student portal
+├── style.css               → Shared glassmorphism dark/light theme
+├── admin.js                → Builder logic + offline exam generation
+├── challenges.js           → Shared question encoding utilities
+│
+├── js/
+│   ├── firebase-config.js  → Firebase credentials (your config)
+│   └── take.js             → Student exam logic (online mode)
+│
+└── .github/
+    └── workflows/
+        └── deploy.yml      → GitHub Pages auto-deployment
+```
+
+<br>
+
+---
+
+<br>
+
+## 🖼️ Screenshots
+
+<div align="center">
+
+<img width="90%" alt="Exam Builder Dashboard" src="https://github.com/user-attachments/assets/849912af-8199-448b-a029-5442b0242161" />
+<br><br>
+<img width="60%" alt="Student Exam View" src="https://github.com/user-attachments/assets/2f5db86d-a908-4aa7-8d82-9b79e0d4edd5" />
+
+</div>
+
+<br>
+
+---
+
+<br>
+
+## 🛠️ Tech Stack
+
+<div align="center">
+
+| Technology | Purpose |
+|:---:|:---:|
+| ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) | Structure |
+| ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) | Glassmorphism theme |
+| ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) | Core logic |
+| ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black) | Live exam sync |
+| ![Skulpt](https://img.shields.io/badge/Skulpt-3776AB?style=flat-square&logo=python&logoColor=white) | Python execution |
+
+</div>
+
+<br>
+
+---
+
+<br>
+
+<div align="center">
+
+### Built with ❤️ by [OPH](https://github.com/op-h)
+
+<br>
+
+[![GitHub Stars](https://img.shields.io/github/stars/op-h/Quiz_Maker?style=social)](https://github.com/op-h/Quiz_Maker)
+
+</div>
