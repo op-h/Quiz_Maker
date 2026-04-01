@@ -148,6 +148,19 @@
       } else {
         $('edit-answer-text').value = '';
         $('edit-answer-text').placeholder = 'Leave blank to keep current answer';
+        // Show note if existing question has an attachment
+        const existNote = $('attachment-existing-note');
+        const areaBox = $('file-upload-area');
+        if (existNote && areaBox) {
+          if (ch.attachment) {
+            existNote.style.display = 'block';
+            areaBox.style.borderColor = 'var(--accent-warning)';
+          } else {
+            existNote.style.display = 'none';
+            areaBox.style.borderColor = 'var(--border-color)';
+          }
+        }
+        _resetAttachmentUI();
       }
     } else {
       const nextId = localChallenges.length > 0
@@ -164,6 +177,9 @@
       renderMcqOptions([]);
       $('edit-code-lang').value = 'html';
       $('edit-code-verify').value = '';
+      _resetAttachmentUI();
+      if($('attachment-existing-note')) $('attachment-existing-note').style.display = 'none';
+      if($('file-upload-area')) $('file-upload-area').style.borderColor = 'var(--border-color)';
     }
     updateDynamicForm();
   }
@@ -189,6 +205,78 @@
     document.querySelectorAll('.admin-sidebar-nav button').forEach(b => b.classList.remove('active'));
     $('nav-list').classList.add('active');
   });
+
+  // ─── Attachment UI helpers ─────────────────────────────────────
+  var _pendingAttachment = null; // { name, type, data: base64string }
+
+  function _resetAttachmentUI() {
+    _pendingAttachment = null;
+    const fi = $('edit-attachment');
+    if (fi) fi.value = '';
+    const ph = $('file-upload-placeholder');
+    const pv = $('file-upload-preview');
+    if (ph) ph.style.display = 'block';
+    if (pv) pv.style.display = 'none';
+  }
+
+  function _showAttachmentPreview(name) {
+    const ph = $('file-upload-placeholder');
+    const pv = $('file-upload-preview');
+    const nm = $('file-upload-name');
+    if (!ph || !pv || !nm) return;
+    ph.style.display = 'none';
+    pv.style.display = 'flex';
+    nm.textContent = '📎 ' + name;
+    if ($('file-upload-area')) $('file-upload-area').style.borderColor = 'var(--accent-primary)';
+  }
+
+  const _attachInput = $('edit-attachment');
+  if (_attachInput) {
+    _attachInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) return;
+      const MAX_MB = 2;
+      if (file.size > MAX_MB * 1024 * 1024) {
+        alert('File is too large. Maximum size is ' + MAX_MB + 'MB.');
+        this.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        _pendingAttachment = { name: file.name, type: file.type, data: e.target.result };
+        _showAttachmentPreview(file.name);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const _removeBtn = $('btn-remove-attachment');
+  if (_removeBtn) {
+    _removeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      _resetAttachmentUI();
+      if ($('file-upload-area')) $('file-upload-area').style.borderColor = 'var(--border-color)';
+    });
+  }
+
+  // Drag-over style feedback
+  const _uploadArea = $('file-upload-area');
+  if (_uploadArea) {
+    _uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); this.style.borderColor = 'var(--accent-primary)'; this.style.background = 'rgba(88,166,255,.05)'; });
+    _uploadArea.addEventListener('dragleave', function() { this.style.background = 'var(--input-bg)'; if (!_pendingAttachment) this.style.borderColor = 'var(--border-color)'; });
+    _uploadArea.addEventListener('drop', function(e) {
+      e.preventDefault();
+      this.style.background = 'var(--input-bg)';
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      const inp = $('edit-attachment');
+      // Trigger the change handler manually via DataTransfer
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      inp.files = dt.files;
+      inp.dispatchEvent(new Event('change'));
+    });
+  }
 
   $('btn-save-challenge').addEventListener('click', () => {
     const editIdRaw = $('edit-id').value;
@@ -256,13 +344,30 @@
       format = 'Code Execution / Sandbox';
     }
 
+    // Handle file attachment for text questions
+    let attachmentData = undefined;
+    if (qType === 'text') {
+      if (_pendingAttachment) {
+        // New file uploaded — use it
+        attachmentData = _pendingAttachment;
+      } else if (existing && existing.attachment) {
+        // No new file, keep existing attachment
+        attachmentData = existing.attachment;
+      }
+    }
+
     const updated = { 
       id: newId, points, topic, type: qType, q: qEn, qAr, 
-      format, hint, hash: newHash, ansLen: newAnsLen,
-      options: qType === 'mcq' ? optionsData : undefined,
-      codeLang: qType === 'code' ? codeLang : undefined,
-      codeVerify: qType === 'code' ? codeVerify : undefined
+      format, hint, hash: newHash, ansLen: newAnsLen
     };
+    if (qType === 'mcq') updated.options = optionsData;
+    if (qType === 'code') {
+      updated.codeLang = codeLang;
+      updated.codeVerify = codeVerify;
+    }
+    if (attachmentData) updated.attachment = attachmentData;
+
+    _resetAttachmentUI();
 
     if (existing) {
       localChallenges = localChallenges.map(c => c.id === existing.id ? updated : c);
@@ -332,9 +437,210 @@
       console.error(err);
     }
 
-    btn.textContent = 'Create Quiz File';
+    btn.textContent = 'Export Offline HTML';
     btn.disabled = false;
   });
+
+  // ─── Format Time Helper ────────────────────────────────────────
+  function formatTime(ms) {
+    var secs = Math.floor(ms / 1000);
+    var mins = Math.floor(secs / 60);
+    var remainingSecs = secs % 60;
+    return (mins < 10 ? '0' + mins : mins) + ':' + (remainingSecs < 10 ? '0' + remainingSecs : remainingSecs);
+  }
+
+  // ─── Host Live Exam Logic ────────────────────────────────────
+  $('btn-host-live').addEventListener('click', async () => {
+    const btn = $('btn-host-live');
+    if (localChallenges.length === 0) {
+      return alert('Add at least one question before hosting a live exam.');
+    }
+
+    // Validation: Check for manual grading
+    const hasManual = localChallenges.some(c => c.type === 'code');
+    if (hasManual) {
+      return alert('Online Live Exams do not currently support manual grading questions (Code Execution blocks). Please remove code challenges or rewrite them as Multiple Choice before publishing.');
+    }
+
+    if (typeof firebase === 'undefined' || !firebase.apps.length) {
+      return alert('Firebase is not configured! Please see js/firebase-config.js to insert your Free Firebase Realtime Database config before hosting.');
+    }
+
+    // Read settings
+    const examTitle = ($('exam-title').value || 'Custom Exam').trim();
+    const examPass = ($('exam-password').value || '').trim();
+    const passHash = examPass ? window.CTF_DATA.encodeInput(examPass) : null;
+    const lockCopyPaste = $('lock-copy-paste').checked;
+    const examMode = $('exam-mode').checked;
+    const enableTimer = $('enable-timer').checked;
+    const timerMinutes = parseInt($('exam-timer-minutes').value, 10) || 60;
+    const teacherPass = ($('teacher-password').value || '').trim();
+    const teacherPassHash = teacherPass ? window.CTF_DATA.encodeInput(teacherPass) : null;
+
+    btn.textContent = 'Publishing...';
+    btn.disabled = true;
+
+    try {
+      const db = firebase.database();
+      const examId = Math.random().toString(36).substr(2, 6).toUpperCase();
+      
+      const payload = {
+        meta: {
+          title: examTitle,
+          passHash: passHash,
+          lockCopyPaste: lockCopyPaste,
+          examMode: examMode,
+          enableTimer: enableTimer,
+          timerMinutes: timerMinutes,
+          teacherPassHash: teacherPassHash, // not strictly used if results are hidden, but good to have
+          status: 'active',
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        },
+        challenges: JSON.parse(JSON.stringify(localChallenges))
+      };
+
+      await db.ref('exams/' + examId).set(payload);
+      
+      openLiveDashboard(examId);
+
+    } catch (err) {
+      alert('Failed to publish to Firebase: ' + err.message);
+      console.error(err);
+    }
+    
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><path d="M12 2v2"></path><path d="M22 12h-2"></path><path d="M12 22v-2"></path><path d="M2 12h2"></path></svg> Host Live Exam';
+    btn.disabled = false;
+  });
+
+  let currentLiveExamRef = null;
+  let currentLiveStudentsRef = null;
+  let qrCodeInstance = null;
+
+  function openLiveDashboard(examId) {
+    $('live-dashboard-modal').style.display = 'flex';
+    
+    // Generate actual URL
+    const origin = window.location.origin;
+    const path = window.location.pathname.replace('index.html', '');
+    const liveLink = origin + path + 'take.html?id=' + examId;
+    
+    $('live-link-input').value = liveLink;
+    
+    $('qrcode-container').innerHTML = '';
+    qrCodeInstance = new QRCode($('qrcode-container'), {
+      text: liveLink,
+      width: 150,
+      height: 150
+    });
+
+    $('live-status-text').textContent = '● Accepting Connections';
+    $('live-status-text').style.color = 'var(--accent-success)';
+    $('btn-end-live').style.display = 'block';
+    $('btn-end-live').textContent = 'END EXAM NOW';
+    $('btn-close-live-modal').style.display = 'none';
+    $('live-leaderboard-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Waiting for students to connect...</td></tr>';
+    $('live-count').textContent = '0';
+
+    currentLiveExamRef = firebase.database().ref('exams/' + examId);
+    currentLiveStudentsRef = firebase.database().ref('exams/' + examId + '/students');
+
+    currentLiveStudentsRef.on('value', (snapshot) => {
+      renderLeaderboard(snapshot.val() || {});
+    });
+
+    $('btn-copy-link').onclick = () => {
+      navigator.clipboard.writeText(liveLink);
+      $('btn-copy-link').textContent = 'Copied!';
+      setTimeout(() => $('btn-copy-link').textContent = 'Copy Link', 2000);
+    };
+
+    $('btn-end-live').onclick = async () => {
+      if(!confirm('End this exam now?\n\n• All in-progress students will be force-submitted immediately\n• Their current answers will be auto-graded and synced to the leaderboard\n• The exam link will stop working after cleanup')) return;
+      $('btn-end-live').textContent = 'Ending...';
+      $('btn-end-live').disabled = true;
+      
+      // Step 1: Set status to ended — triggers force-submit on ALL students (even mid-exam)
+      // Students' take.js listens for this and calls finishTest(true) which:
+      //   - auto-grades all MCQ answers
+      //   - calculates final score
+      //   - syncs score + timeElapsed + status='finished' to Firebase
+      await currentLiveExamRef.child('meta').update({ status: 'ended' });
+      
+      $('live-status-text').textContent = '○ Waiting for students to submit...';
+      $('live-status-text').style.color = 'var(--accent-warning)';
+      
+      // Step 2: Wait 6 seconds for all students to finish force-submitting their final scores
+      // This gives time for network latency + score calculation + Firebase write
+      await new Promise(r => setTimeout(r, 6000));
+      
+      // Step 3: Snapshot the final leaderboard BEFORE deleting
+      // (The leaderboard is already rendered in the modal, so teacher can still see it)
+      $('live-status-text').textContent = '○ Cleaning up...';
+      
+      // Step 4: Delete the entire exam from Firebase (students data + exam data)
+      try {
+        currentLiveStudentsRef.off(); // stop listening
+        await currentLiveExamRef.remove();
+      } catch(e) { console.error('Failed to delete exam data:', e); }
+      
+      $('live-status-text').textContent = '○ Exam Ended — Data Cleared';
+      $('live-status-text').style.color = 'var(--accent-danger)';
+      $('btn-end-live').style.display = 'none';
+      $('btn-close-live-modal').style.display = 'block';
+    };
+
+    $('btn-close-live-modal').onclick = () => {
+      currentLiveStudentsRef.off();
+      $('live-dashboard-modal').style.display = 'none';
+    };
+  }
+
+  function renderLeaderboard(studentsObj) {
+    const list = Object.keys(studentsObj).map(k => ({
+      name: k,
+      ...studentsObj[k]
+    }));
+
+    $('live-count').textContent = list.length;
+
+    if (list.length === 0) {
+      $('live-leaderboard-tbody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Waiting for students to connect...</td></tr>';
+      return;
+    }
+
+    // Deep copy and sort
+    list.sort((a, b) => {
+      const scoreA = parseFloat(a.score) || 0;
+      const scoreB = parseFloat(b.score) || 0;
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA; // Highest score first
+      }
+      return (a.timeElapsed || Infinity) - (b.timeElapsed || Infinity); // Fastest completion first
+    });
+
+    let html = '';
+    list.forEach((s, i) => {
+      let statusHtml = '';
+      if (s.status === 'finished') {
+        statusHtml = '<span style="color:var(--accent-success)">Completed</span>';
+      } else {
+        statusHtml = '<span style="color:var(--accent-warning)">In Progress</span>';
+      }
+
+      let timeStr = s.timeElapsed ? formatTime(s.timeElapsed) : '--:--';
+      let formattedScore = s.score !== undefined ? Number(s.score).toFixed(2) : '--';
+
+      html += `<tr style="border-bottom:1px solid var(--border-color); background: ${i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)'}">
+          <td style="padding:12px 16px;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);">${i + 1}</td>
+          <td style="padding:12px 16px;color:var(--text-bright);font-weight:600;">${escHtml(s.name)}</td>
+          <td style="padding:12px 16px;color:var(--accent-primary);font-weight:700;">${formattedScore}</td>
+          <td style="padding:12px 16px;color:var(--text-muted);font-family:var(--font-mono);">${timeStr}</td>
+          <td style="padding:12px 16px;">${statusHtml}</td>
+        </tr>`;
+    });
+
+    $('live-leaderboard-tbody').innerHTML = html;
+  }
 
   // ─── Build standalone HTML ────────────────────────────────────
   async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash) {
@@ -516,7 +822,7 @@ body.light{--bg-color:#f0f2f5;--panel-bg:#fff;--panel-hover:#f0f3f7;--border-col
 body{background:var(--bg-color);background-image:linear-gradient(rgba(88,166,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(88,166,255,.02) 1px,transparent 1px);background-size:40px 40px;color:var(--text-main);font-family:var(--font-main);display:flex;flex-direction:column;min-height:100vh;height:100vh;overflow:hidden;user-select:${lockCopyPaste ? 'none' : 'auto'};-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 input,textarea{user-select:auto}
 h1,h2,h3{color:var(--text-bright);font-weight:700}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:8px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:8px}::-webkit-scrollbar-thumb:hover{background:var(--border-glow)}
 button{font-family:var(--font-main);font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--border-color);background:var(--panel-hover);color:var(--text-muted);padding:9px 18px;border-radius:var(--radius-md);transition:all .18s ease;display:inline-flex;align-items:center;gap:6px;letter-spacing:.3px;text-transform:uppercase}
 button:hover{border-color:var(--accent-primary);color:var(--accent-primary);background:rgba(88,166,255,.06);transform:translateY(-1px);box-shadow:0 4px 16px rgba(88,166,255,.15)}
 button.primary{background:var(--accent-primary);border-color:var(--accent-primary);color:#fff;font-weight:700;box-shadow:0 0 20px rgba(88,166,255,.25)}
@@ -587,7 +893,14 @@ ${enableTimer ? '.timer-display { font-family: var(--font-mono); font-size: 16px
 .stats-table th,.stats-table td{padding:13px 10px;border-bottom:1px solid var(--border-color);text-align:left;font-size:13px}
 .stats-table th{color:var(--text-muted);font-weight:500;width:45%;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
 .stats-table td{color:var(--text-bright);font-weight:600}
-.stats-table tr:last-child th,.stats-table tr:last-child td{border-bottom:none}`;
+.stats-table tr:last-child th,.stats-table tr:last-child td{border-bottom:none}
+.sidebar-progress{padding:12px 20px;border-top:1px solid var(--border-color);margin-top:auto}
+.sidebar-progress-bar{width:100%;height:3px;background:var(--border-color);border-radius:2px;overflow:hidden}
+.sidebar-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent-primary),var(--accent-success));border-radius:2px;transition:width .4s ease}
+.sidebar-progress-text{font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:6px;text-align:center}
+.score-circle{margin:20px auto;width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-circle .score-val{font-size:28px;font-weight:800;font-family:var(--font-mono)}
+.score-circle .score-lbl{font-size:9px;color:var(--text-muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px}`;
   }
 
   // ─── Embedded game script ─────────────────────────────────────
@@ -847,16 +1160,24 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
 
 function renderSidebar(){
   els.sidebar.innerHTML='';
+  var solvedCount = 0;
+  var totalCount = state.gameChallenges.length;
   state.gameChallenges.forEach(function(ch,idx){
+    if (ch.status === 'solved' || ch.status === 'answered' || ch.status === 'pending') solvedCount++;
     var btn=document.createElement('button');btn.className='level-btn';
     if(ch.status==='open')btn.classList.add('unlocked');
     if(ch.status==='solved')btn.classList.add('solved');
     if(ch.status==='pending' || ch.status==='answered') { btn.classList.add('solved'); btn.style.borderLeftColor = 'var(--accent-warning)'; }
     if(idx===state.currentIndex)btn.classList.add('active-level');
-    btn.innerHTML='<span>Question '+ch.displayLevel+'</span><span class="icon"></span>';
+    btn.innerHTML='<span>Question '+ch.displayLevel+'</span><span class="icon" style="width:6px;height:6px;border-radius:50%;display:inline-block;"></span>';
     btn.addEventListener('click',function(){loadChallenge(idx);});
     els.sidebar.appendChild(btn);
   });
+  var pct = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
+  var progDiv = document.createElement('div');
+  progDiv.className = 'sidebar-progress';
+  progDiv.innerHTML = '<div class="sidebar-progress-bar"><div class="sidebar-progress-fill" style="width:' + pct + '%"></div></div><div class="sidebar-progress-text">' + solvedCount + ' / ' + totalCount + ' answered (' + pct + '%)</div>';
+  els.sidebar.appendChild(progDiv);
 }
 
 function loadChallenge(index){
@@ -965,7 +1286,19 @@ function loadChallenge(index){
     });
   } else {
     var p = ch.format || 'Enter your exact answer...';
-    els.answerArea.innerHTML = '<div class="flag-input-wrapper"><input type="text" id="flag-input" autocomplete="off" spellcheck="false" placeholder="'+p+'"></div>' +
+    
+    var attachmentHtml = '';
+    if (ch.attachment && ch.attachment.data) {
+      attachmentHtml = '<div style="margin-bottom:20px;padding:16px;background:var(--panel-hover);border:1px solid var(--border-color);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:space-between;">' +
+        '<div style="display:flex;align-items:center;gap:12px;overflow:hidden;">' +
+        '<div style="width:36px;height:36px;flex-shrink:0;border-radius:8px;background:rgba(88,166,255,.1);display:flex;align-items:center;justify-content:center;color:var(--accent-primary);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg></div>' +
+        '<div style="overflow:hidden;"><div style="font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text-bright);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(ch.attachment.name) + '</div><div style="font-size:10px;color:var(--text-muted);">' + escHtml(ch.attachment.type || 'Attached File') + '</div></div>' +
+        '</div>' +
+        '<a href="' + ch.attachment.data + '" download="' + escHtml(ch.attachment.name) + '" style="flex-shrink:0;padding:8px 14px;background:var(--accent-primary);color:#fff;text-decoration:none;border-radius:4px;font-size:11px;font-weight:700;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 0 15px rgba(88,166,255,.2);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Download</a>' +
+        '</div>';
+    }
+
+    els.answerArea.innerHTML = attachmentHtml + '<div class="flag-input-wrapper"><input type="text" id="flag-input" autocomplete="off" spellcheck="false" placeholder="'+p+'"></div>' +
       (ch.hint ? '<div style="margin-top:12px;text-align:center;"><span style="font-size:13px;padding:6px 14px;background:var(--panel-hover);border:1px solid var(--border-color);border-radius:6px;color:var(--text-bright);box-shadow:inset 0 1px 3px rgba(0,0,0,0.2);">💡 Hint: ' + escHtml(ch.hint) + '</span></div>' : '');
     var fi = document.getElementById('flag-input');
     if (isSolved) { fi.value = '[Already Solved]'; fi.disabled = true; }
@@ -1041,14 +1374,20 @@ function finishTest(){
     }
   });
 
-  // 2. Build Results HTML with ACTUAL score
-  var resHTML = '<div style="display:flex;justify-content:center;margin-bottom:24px;">' +
+  // 2. Build Results HTML with score circle + details
+  var scorePercent = state.maxScore > 0 ? Math.round((state.totalScore / state.maxScore) * 100) : 0;
+  var gradeColor = scorePercent >= 80 ? 'var(--accent-success)' : scorePercent >= 50 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+
+  var resHTML = '<div class="score-circle" style="border:3px solid ' + gradeColor + ';box-shadow:0 0 30px rgba(0,0,0,.3);">' +
+    '<span class="score-val" style="color:' + gradeColor + ';">' + scorePercent + '%</span>' +
+    '<span class="score-lbl">Score</span></div>';
+
+  resHTML += '<div style="display:flex;justify-content:center;margin-bottom:24px;">' +
     '<table style="width:100%;max-width:450px;border-collapse:collapse;background:var(--panel-hover);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-md);">' +
     '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;width:50%;">Student</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+escHtml(state.playerName)+'</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Attempts</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+(state.attempts||1)+'</td></tr>' +
     '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Time Elapsed</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-bright);">'+formatTime(elapsed)+'</td></tr>' +
-    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Final Score</th><td id="final-score-display" style="padding:14px 20px;text-align:right;font-weight:600;color:var(--accent-primary);font-size:16px;">'+Number(state.totalScore.toFixed(2))+' pts</td></tr>' +
-    '<tr><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Max Possible</th><td style="padding:14px 20px;text-align:right;font-weight:600;color:var(--text-muted);">'+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
+    '<tr style="border-bottom:1px solid var(--border-color);"><th style="padding:14px 20px;text-align:left;color:var(--text-muted);font-weight:500;">Final Score</th><td id="final-score-display" style="padding:14px 20px;text-align:right;font-weight:600;color:' + gradeColor + ';font-size:16px;">'+Number(state.totalScore.toFixed(2))+' / '+Number(state.maxScore.toFixed(2))+' pts</td></tr>' +
     '</table></div>';
 
   resHTML += '<div style="margin-top:24px;text-align:left;"><h3 style="font-size:18px;margin-bottom:12px;color:var(--text-bright);border-bottom:1px solid var(--border-color);padding-bottom:8px;">Detailed Results</h3>' +

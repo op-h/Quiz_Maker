@@ -320,10 +320,16 @@
       </div>
       <div class="admin-sidebar-footer">
         <button class="theme-toggle" id="btn-theme" title="Toggle light/dark mode">Light Mode</button>
-        <button class="success" id="btn-create-quiz">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Generate Output
-        </button>
+        <div style="display: flex; gap: 8px; flex-direction: column;">
+          <button class="success" id="btn-create-quiz">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export Offline HTML
+          </button>
+          <button class="primary" id="btn-host-live" style="background-color: var(--accent-primary); color: #0d1117;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><path d="M12 2v2"></path><path d="M22 12h-2"></path><path d="M12 22v-2"></path><path d="M2 12h2"></path></svg>
+            Host Live Exam
+          </button>
+        </div>
       </div>
 
       <!-- Designer Credit -->
@@ -363,13 +369,14 @@
             50%       { opacity: 0; }
           }
         </style>
-        <div class="oph-badge" style="
+        <a href="https://github.com/op-h" target="_blank" rel="noopener noreferrer" class="oph-badge" style="
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 5px;
-          cursor: default;
+          cursor: pointer;
           user-select: none;
+          text-decoration: none;
         ">
           <span style="
             font-family: var(--font-mono);
@@ -405,7 +412,7 @@
             <span style="width:4px;height:4px;border-radius:50%;background:var(--accent-primary);opacity:.7;"></span>
             <span style="width:4px;height:4px;border-radius:50%;background:var(--accent-primary);opacity:1;box-shadow:0 0 6px rgba(88,166,255,.8);"></span>
           </div>
-        </div>
+        </a>
       </div>
     </div>
 
@@ -539,11 +546,30 @@
         </div>
 
         <!-- Dynamic Form Area: For TYPE=TEXT -->
-        <div id="part-text" class="form-row dyn-part">
+        <div id="part-text" class="form-row dyn-part" style="flex-direction:column;gap:16px;">
           <div class="form-group">
             <label>Expected Exact Answer</label>
             <input type="text" id="edit-answer-text" placeholder="Plain text — will be hashed automatically">
             <small>Leave blank when editing an existing challenge to keep its hash.</small>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label style="display:flex;align-items:center;gap:8px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+              Attach File for Students (Online Exam only)
+            </label>
+            <div id="file-upload-area" style="border:2px dashed var(--border-color);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;transition:all .2s ease;position:relative;background:var(--input-bg);">
+              <input type="file" id="edit-attachment" accept="*/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
+              <div id="file-upload-placeholder">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <p style="color:var(--text-muted);font-size:13px;margin:0;">Drop file here or click to browse</p>
+                <p style="color:var(--border-glow);font-size:11px;margin:4px 0 0;font-family:var(--font-mono);">Any file type — images, PDFs, code files, etc.</p>
+              </div>
+              <div id="file-upload-preview" style="display:none;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;">
+                <span id="file-upload-name" style="font-family:var(--font-mono);font-size:13px;color:var(--accent-primary);word-break:break-all;"></span>
+                <button type="button" id="btn-remove-attachment" style="padding:4px 10px;font-size:11px;color:var(--accent-danger);border-color:var(--accent-danger);background:transparent;min-width:0;">✕ Remove</button>
+              </div>
+            </div>
+            <small id="attachment-existing-note" style="display:none;color:var(--accent-warning);">⚠ This question already has an attachment. Upload a new file to replace it, or leave empty to keep the existing one.</small>
           </div>
         </div>
 
@@ -589,7 +615,53 @@
     </div>
   </div>
 
+  <!-- Live Dashboard Modal -->
+  <div id="live-dashboard-modal" style="display:none; position:fixed; inset:0; background:var(--bg-color); z-index:9999; flex-direction:row; color:var(--text-main);">
+    <!-- Left Panel: QR Code & Link -->
+    <div style="width:350px; background:var(--panel-bg); border-right:1px solid var(--border-color); padding:30px; display:flex; flex-direction:column; align-items:center; text-align:center;">
+      <h2 style="color:var(--accent-primary); font-family:var(--font-mono); margin-bottom:20px;">LIVE EXAM ACTIVE</h2>
+      <div id="qrcode-container" style="background:white; padding:15px; border-radius:10px; margin-bottom:20px; display:inline-block;"></div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Students scan or visit:</p>
+      <input type="text" id="live-link-input" readonly style="width:100%; text-align:center; padding:10px; border-radius:4px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-bright); margin-bottom:20px; font-family:var(--font-mono);">
+      <button class="primary" id="btn-copy-link" style="width:100%; margin-bottom:20px; padding:8px;">Copy Link</button>
+      
+      <div style="margin-top:auto; width:100%;">
+        <p id="live-status-text" style="color:var(--accent-success); font-family:var(--font-mono); font-size:12px; margin-bottom:15px;">● Accepting Connections</p>
+        <button class="danger" id="btn-end-live" style="width:100%; padding:12px; font-weight:bold;">END EXAM NOW</button>
+        <button id="btn-close-live-modal" style="width:100%; padding:12px; margin-top:10px; display:none;">Back to Builder</button>
+      </div>
+    </div>
+    <!-- Right Panel: Leaderboard -->
+    <div style="flex:1; padding:40px; overflow-y:auto; background:var(--workspace-bg);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:20px;">
+        <h1 style="font-size:24px; color:var(--text-bright);">Live Leaderboard</h1>
+        <div style="font-family:var(--font-mono); font-size:14px; color:var(--accent-warning);">
+          Total Students: <span id="live-count">0</span>
+        </div>
+      </div>
+      <table class="admin-table" style="width:100%;">
+        <thead>
+          <tr>
+            <th style="width:60px">Rank</th>
+            <th>Student Name</th>
+            <th style="width:150px">Score</th>
+            <th style="width:150px">Time Elapsed</th>
+            <th style="width:120px">Status</th>
+          </tr>
+        </thead>
+        <tbody id="live-leaderboard-tbody">
+          <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Waiting for students to connect...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  
   <script src="challenges.js"></script>
   <script src="admin.js"></script>
 
