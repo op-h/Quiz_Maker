@@ -138,7 +138,7 @@
 
 <br>
 
-## 🔧 Configuration
+## Configuration
 
 ### Firebase Setup (for Live Exams only)
 
