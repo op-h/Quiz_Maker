@@ -24,6 +24,10 @@
     }
     renderTable();
     showSection('list-section');
+    
+    // Attach listener to update timer stats live
+    if($('enable-timer')) $('enable-timer').addEventListener('change', updateStatsDashboard);
+    if($('exam-timer-minutes')) $('exam-timer-minutes').addEventListener('input', updateStatsDashboard);
   });
 
   // ─── Navigation ──────────────────────────────────────────────
@@ -55,7 +59,32 @@
   });
 
   // ─── Table ───────────────────────────────────────────────────
+  function updateStatsDashboard() {
+    const totalQ = localChallenges.length;
+    let totalPts = 0;
+    const types = new Set();
+    localChallenges.forEach(ch => {
+      totalPts += Number(ch.points || 10);
+      types.add(ch.type === 'mcq' ? 'MCQ' : (ch.type === 'code' ? 'Code' : 'Text'));
+    });
+    
+    if($('stat-total')) $('stat-total').textContent = totalQ;
+    if($('stat-points')) $('stat-points').textContent = totalPts;
+    if($('stat-types')) $('stat-types').textContent = totalQ > 0 ? types.size : '—';
+    if($('stat-types-detail')) $('stat-types-detail').textContent = totalQ > 0 ? Array.from(types).join(', ') : 'no questions yet';
+    if($('nav-count-questions')) $('nav-count-questions').textContent = totalQ;
+    
+    const timerOn = $('enable-timer') && $('enable-timer').checked;
+    const mins = $('exam-timer-minutes') ? $('exam-timer-minutes').value : 60;
+    if($('stat-timer')) {
+      $('stat-timer').textContent = timerOn ? mins + 'm' : 'OFF';
+      $('stat-timer').parentElement.className = timerOn ? 'stat-card' : 'stat-card accent-warning';
+    }
+    if($('stat-timer-detail')) $('stat-timer-detail').textContent = timerOn ? 'auto-submit active' : 'no time limit';
+  }
+
   function renderTable() {
+    updateStatsDashboard();
     const tbody = $('challenges-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -75,9 +104,13 @@
         <td style="white-space: pre-wrap; font-size:13px; line-height:1.5;">${escHtml(ch.q)}</td>
         <td>${hashDisplay}</td>
         <td>
-          <div class="actions">
-            <button class="warning" style="font-size:11px;padding:6px 10px;justify-content:center;" onclick="window._editCh(${ch.id})">Edit</button>
-            <button class="danger"  style="font-size:11px;padding:6px 10px;justify-content:center;" onclick="window._delCh(${ch.id})">Delete</button>
+          <div class="actions-row">
+            <button class="btn-action-icon edit-btn" title="Edit Question" onclick="window._editCh(${ch.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            </button>
+            <button class="btn-action-icon del-btn" title="Delete Question" onclick="window._delCh(${ch.id})">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
           </div>
         </td>`;
       tbody.appendChild(tr);
