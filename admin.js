@@ -16,6 +16,31 @@
     el._t = setTimeout(() => { el.style.display = 'none'; }, 3500);
   }
 
+  window.thmConfirm = function(message, onConfirm) {
+    const modal = $('htb-modal');
+    if (!modal) {
+      if (confirm(message)) onConfirm();
+      return;
+    }
+    const body = $('htb-modal-body');
+    const btnCancel = $('htb-modal-cancel');
+    const btnConfirm = $('htb-modal-confirm');
+    
+    body.textContent = message;
+    modal.classList.add('active');
+    
+    const newCancel = btnCancel.cloneNode(true);
+    const newConfirm = btnConfirm.cloneNode(true);
+    btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+    btnConfirm.parentNode.replaceChild(newConfirm, btnConfirm);
+
+    newCancel.addEventListener('click', () => { modal.classList.remove('active'); });
+    newConfirm.addEventListener('click', () => {
+      modal.classList.remove('active');
+      if (onConfirm) onConfirm();
+    });
+  };
+
   // ─── Init ────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('__ctf_exam_builder');
@@ -225,11 +250,12 @@
   };
 
   window._delCh = function (id) {
-    if (!confirm('Delete Question #' + id + '?')) return;
-    localChallenges = localChallenges.filter(c => c.id !== id);
-    saveToStorage();
-    renderTable();
-    showAlert('Question #' + id + ' deleted.', true);
+    window.thmConfirm('Delete Question #' + id + '?', () => {
+      localChallenges = localChallenges.filter(c => c.id !== id);
+      saveToStorage();
+      renderTable();
+      showAlert('Question #' + id + ' deleted.', true);
+    });
   };
 
   $('btn-cancel-edit').addEventListener('click', () => {
@@ -426,11 +452,12 @@
 
   // ─── Reset ───────────────────────────────────────────────────
   $('btn-reset-default').addEventListener('click', () => {
-    if (!confirm('Clear ALL questions from the builder? This cannot be undone.')) return;
-    localStorage.removeItem('__ctf_exam_builder');
-    localChallenges = [];
-    renderTable();
-    showAlert('Builder cleared.', true);
+    window.thmConfirm('Clear ALL questions from the builder? This cannot be undone.', () => {
+      localStorage.removeItem('__ctf_exam_builder');
+      localChallenges = [];
+      renderTable();
+      showAlert('Builder cleared.', true);
+    });
   });
 
   // ─── Generate exam file ───────────────────────────────────────
@@ -588,38 +615,33 @@
     };
 
     $('btn-end-live').onclick = async () => {
-      if(!confirm('End this exam now?\n\n• All in-progress students will be force-submitted immediately\n• Their current answers will be auto-graded and synced to the leaderboard\n• The exam link will stop working after cleanup')) return;
-      $('btn-end-live').textContent = 'Ending...';
-      $('btn-end-live').disabled = true;
-      
-      // Step 1: Set status to ended — triggers force-submit on ALL students (even mid-exam)
-      // Students' take.js listens for this and calls finishTest(true) which:
-      //   - auto-grades all MCQ answers
-      //   - calculates final score
-      //   - syncs score + timeElapsed + status='finished' to Firebase
-      await currentLiveExamRef.child('meta').update({ status: 'ended' });
-      
-      $('live-status-text').textContent = '○ Waiting for students to submit...';
-      $('live-status-text').style.color = 'var(--accent-warning)';
-      
-      // Step 2: Wait 6 seconds for all students to finish force-submitting their final scores
-      // This gives time for network latency + score calculation + Firebase write
-      await new Promise(r => setTimeout(r, 6000));
-      
-      // Step 3: Snapshot the final leaderboard BEFORE deleting
-      // (The leaderboard is already rendered in the modal, so teacher can still see it)
-      $('live-status-text').textContent = '○ Cleaning up...';
-      
-      // Step 4: Delete the entire exam from Firebase (students data + exam data)
-      try {
-        currentLiveStudentsRef.off(); // stop listening
-        await currentLiveExamRef.remove();
-      } catch(e) { console.error('Failed to delete exam data:', e); }
-      
-      $('live-status-text').textContent = '○ Exam Ended — Data Cleared';
-      $('live-status-text').style.color = 'var(--accent-danger)';
-      $('btn-end-live').style.display = 'none';
-      $('btn-close-live-modal').style.display = 'block';
+      window.thmConfirm('End this exam now?\n\n• All in-progress students will be force-submitted immediately\n• Their current answers will be auto-graded and synced to the leaderboard\n• The exam link will stop working after cleanup', async () => {
+        $('btn-end-live').textContent = 'Ending...';
+        $('btn-end-live').disabled = true;
+        
+        // Step 1: Set status to ended — triggers force-submit on ALL students (even mid-exam)
+        await currentLiveExamRef.child('meta').update({ status: 'ended' });
+        
+        $('live-status-text').textContent = '○ Waiting for students to submit...';
+        $('live-status-text').style.color = 'var(--accent-warning)';
+        
+        // Step 2: Wait 6 seconds for all students to finish force-submitting their final scores
+        await new Promise(r => setTimeout(r, 6000));
+        
+        // Step 3: Snapshot the final leaderboard BEFORE deleting
+        $('live-status-text').textContent = '○ Cleaning up...';
+        
+        // Step 4: Delete the entire exam from Firebase (students data + exam data)
+        try {
+          currentLiveStudentsRef.off(); // stop listening
+          await currentLiveExamRef.remove();
+        } catch(e) { console.error('Failed to delete exam data:', e); }
+        
+        $('live-status-text').textContent = '○ Exam Ended — Data Cleared';
+        $('live-status-text').style.color = 'var(--accent-danger)';
+        $('btn-end-live').style.display = 'none';
+        $('btn-close-live-modal').style.display = 'block';
+      });
     };
 
     $('btn-close-live-modal').onclick = () => {
