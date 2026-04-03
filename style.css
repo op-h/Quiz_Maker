@@ -101,8 +101,8 @@ body {
   font-family: var(--font-main);
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh; /* changed from height: 100vh */
+  overflow: auto;    /* changed from overflow: hidden to allow zooming to scroll natively */
   user-select: none;
   -webkit-font-smoothing: antialiased;
   transition: background .2s, color .2s;
@@ -336,7 +336,7 @@ button.theme-toggle:hover {
   width: 100%;
 }
 
-.game-layout { display: flex; flex: 1; overflow: hidden; width: 100%; }
+.game-layout { display: flex; flex: 1; width: 100%; min-height: 100vh; }
 
 /* ─── Sidebar (LEFT) ──────────────────────── */
 .sidebar {
