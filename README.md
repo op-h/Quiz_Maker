@@ -187,8 +187,7 @@ Quiz_Maker/
 ├── challenges.js           → Shared question encoding utilities
 │
 ├── js/
-│   ├── firebase-config.js  → Firebase credentials (your config)
-│   └── take.js             → Student exam logic (online mode)
+│   └── firebase-config.js  → Firebase credentials (your config)
 │
 └── .github/
     └── workflows/

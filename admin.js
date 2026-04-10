@@ -546,7 +546,8 @@
 
     try {
       const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, selectedQ);
-      const blob = new Blob([html], { type: 'text/html' });
+      const packedHtml = packStandaloneHtml(html);
+      const blob = new Blob([packedHtml], { type: 'text/html' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = examTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '.html';
@@ -765,18 +766,18 @@
 
   // ─── JS Obfuscation Engine ──────────────────────────────────
   function obfuscatePayload(jsCode) {
-    // Layer 1: Convert to char codes
-    const encoded = Array.from(jsCode).map(c => c.charCodeAt(0));
+    // Layer 1: Convert to UTF-8 bytes so Unicode content survives encoding
+    const encoded = new TextEncoder().encode(jsCode);
     // Layer 2: XOR with rotating key
     const key = [0x4F, 0x50, 0x48, 0x5F, 0x53, 0x45, 0x43]; // "OPH_SEC"
-    const xored = encoded.map((b, i) => b ^ key[i % key.length]);
+    const xored = Array.from(encoded, (b, i) => b ^ key[i % key.length]);
     // Layer 3: Base64 the result
-    const b64 = btoa(String.fromCharCode(...xored));
+    const b64 = encodeBytesToBase64(xored);
     // Layer 4: Split into random chunks and scatter
-    const chunkSize = 76;
+    const scatterChunkSize = 76;
     const chunks = [];
-    for (let i = 0; i < b64.length; i += chunkSize) {
-      chunks.push(b64.slice(i, i + chunkSize));
+    for (let i = 0; i < b64.length; i += scatterChunkSize) {
+      chunks.push(b64.slice(i, i + scatterChunkSize));
     }
     // Generate cryptic variable names
     const varNames = chunks.map((_, i) => '_0x' + (0xa3f0 + i * 7).toString(16));
@@ -792,16 +793,58 @@
     // Decoder
     out += 'var _0xk=[0x4F,0x50,0x48,0x5F,0x53,0x45,0x43];';
     out += 'var _0xd=atob(_0xp);';
-    out += 'var _0xr="";';
+    out += 'var _0xb=[];';
     out += 'for(var _0xi=0;_0xi<_0xd.length;_0xi++){';
-    out += '_0xr+=String.fromCharCode(_0xd.charCodeAt(_0xi)^_0xk[_0xi%_0xk.length]);';
+    out += '_0xb.push(_0xd.charCodeAt(_0xi)^_0xk[_0xi%_0xk.length]);';
     out += '}';
+    out += 'var _0xr=new TextDecoder().decode(new Uint8Array(_0xb));';
     // Add anti-debugger traps
     out += 'setInterval(function(){(function(){return false;}).constructor("debugger")();},50);';
     // Execute the decoded payload
     out += 'Function(_0xr)();';
     out += '})();';
     return out;
+  }
+
+  function encodeBytesToBase64(bytes) {
+    let binary = '';
+    const chunkSize = 0x8000;
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      let piece = '';
+      const limit = Math.min(i + chunkSize, bytes.length);
+      for (let j = i; j < limit; j++) {
+        piece += String.fromCharCode(bytes[j]);
+      }
+      binary += piece;
+    }
+
+    return btoa(binary);
+  }
+
+  function encodeUtf8ToBase64(text) {
+    return encodeBytesToBase64(new TextEncoder().encode(text));
+  }
+
+  function chunkPackedPayload(text, chunkSize) {
+    const b64 = encodeUtf8ToBase64(text);
+    const size = chunkSize || 120;
+    const chunks = [];
+
+    for (let i = 0; i < b64.length; i += size) {
+      chunks.push(JSON.stringify(b64.slice(i, i + size)));
+    }
+
+    chunks.reverse();
+    return '[' + chunks.join(',') + ']';
+  }
+
+  function packStandaloneHtml(html) {
+    const parsed = new DOMParser().parseFromString(html, 'text/html');
+    const packed = chunkPackedPayload(html, 120);
+    const title = escHtml(parsed.title || 'Offline Exam');
+
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${title}</title></head><body><script>(()=>{const _0x6b3f=_=>new TextDecoder().decode(Uint8Array.from(atob(_.reverse().join('')),c=>c.charCodeAt(0)));document.open();document.write(_0x6b3f(${packed}));document.close();})();<\/script></body></html>`;
   }
 
   // ─── Build standalone HTML ────────────────────────────────────
