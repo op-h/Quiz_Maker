@@ -113,6 +113,8 @@
     const tbody = $('challenges-tbody');
     if (!tbody) return;
     tbody.innerHTML = '';
+    const selectAll = $('select-all-q');
+    if (selectAll) selectAll.checked = false;
     [...localChallenges].sort((a, b) => a.id - b.id).forEach(ch => {
       const tr = document.createElement('tr');
       const typeLabel = ch.type === 'mcq' ? 'MCQ' : (ch.type === 'code' ? 'Code' : 'Text');
@@ -120,6 +122,7 @@
       const hashDisplay = ch.type === 'code' ? '<i style="color:var(--text-muted)">Verifier Script Attached</i>' : `<span style="color:var(--text-muted);font-size:12px">Hashed: ${ch.hash ? ch.hash.substring(0, 8) : 'none'}...</span>`;
       
       tr.innerHTML = `
+        <td><input type="checkbox" class="q-select" data-id="${ch.id}" style="width:16px;height:16px;cursor:pointer;"></td>
         <td>${ch.id}</td>
         <td>
           <div style="font-weight:600;color:var(--text-bright);margin-bottom:4px;">${escHtml(ch.topic)}</div>
@@ -140,6 +143,20 @@
         </td>`;
       tbody.appendChild(tr);
     });
+  }
+
+  // Select-all checkbox
+  document.addEventListener('change', e => {
+    if (e.target.id === 'select-all-q') {
+      document.querySelectorAll('.q-select').forEach(cb => cb.checked = e.target.checked);
+    }
+  });
+
+  // Get selected question IDs (returns all if none selected)
+  function getSelectedChallenges() {
+    const checked = [...document.querySelectorAll('.q-select:checked')].map(cb => Number(cb.dataset.id));
+    if (checked.length === 0) return localChallenges; // none selected = export all
+    return localChallenges.filter(c => checked.includes(c.id));
   }
 
   // ─── Editor Logic & Dynamic Forms ────────────────────────────
@@ -460,11 +477,57 @@
     });
   });
 
+  // ─── JSON Export ────────────────────────────────────────────
+  $('btn-export-json').addEventListener('click', () => {
+    const toExport = getSelectedChallenges();
+    if (toExport.length === 0) return showAlert('No questions to export.', false);
+    const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'question_bank_' + new Date().toISOString().slice(0,10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showAlert('Exported ' + toExport.length + ' question(s) as JSON.', true);
+  });
+
+  // ─── JSON Import ────────────────────────────────────────────
+  $('btn-import-json').addEventListener('click', () => { $('json-file-input').click(); });
+  $('json-file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) throw new Error('File must contain a JSON array of questions.');
+        let added = 0;
+        imported.forEach(q => {
+          if (!q.id || !q.topic || !q.q) return; // skip invalid
+          // Avoid ID collisions: if ID exists, assign a new one
+          if (localChallenges.some(c => c.id === q.id)) {
+            q.id = localChallenges.length > 0 ? Math.max(...localChallenges.map(x => x.id)) + 1 : 1;
+          }
+          localChallenges.push(q);
+          added++;
+        });
+        saveToStorage();
+        renderTable();
+        showAlert('Imported ' + added + ' question(s) from file.', true);
+      } catch (err) {
+        showAlert('Import failed: ' + err.message, false);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // reset file input
+  });
+
   // ─── Generate exam file ───────────────────────────────────────
   $('btn-create-quiz').addEventListener('click', async () => {
     const btn = $('btn-create-quiz');
-    if (localChallenges.length === 0) {
-      return alert('Add at least one question before generating the exam file.');
+    const selectedQ = getSelectedChallenges();
+    if (selectedQ.length === 0) {
+      return showAlert('Add at least one question before generating the exam file.', false);
     }
 
     // Read exam title and password from the teacher's input
@@ -482,7 +545,7 @@
     btn.disabled = true;
 
     try {
-      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash);
+      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, selectedQ);
       const blob = new Blob([html], { type: 'text/html' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -512,18 +575,19 @@
   // ─── Host Live Exam Logic ────────────────────────────────────
   $('btn-host-live').addEventListener('click', async () => {
     const btn = $('btn-host-live');
-    if (localChallenges.length === 0) {
-      return alert('Add at least one question before hosting a live exam.');
+    const selectedQ = getSelectedChallenges();
+    if (selectedQ.length === 0) {
+      return showAlert('Add at least one question before hosting a live exam.', false);
     }
 
     // Validation: Check for manual grading
-    const hasManual = localChallenges.some(c => c.type === 'code');
+    const hasManual = selectedQ.some(c => c.type === 'code');
     if (hasManual) {
-      return alert('Online Live Exams do not currently support manual grading questions (Code Execution blocks). Please remove code challenges or rewrite them as Multiple Choice before publishing.');
+      return showAlert('Online Live Exams do not currently support manual grading questions (Code Execution blocks). Please remove code challenges or rewrite them as Multiple Choice before publishing.', false);
     }
 
     if (typeof firebase === 'undefined' || !firebase.apps.length) {
-      return alert('Firebase is not configured! Please see js/firebase-config.js to insert your Free Firebase Realtime Database config before hosting.');
+      return showAlert('Firebase is not configured! Please see js/firebase-config.js to insert your Free Firebase Realtime Database config before hosting.', false);
     }
 
     // Read settings
@@ -536,6 +600,7 @@
     const timerMinutes = parseInt($('exam-timer-minutes').value, 10) || 60;
     const teacherPass = ($('teacher-password').value || '').trim();
     const teacherPassHash = teacherPass ? window.CTF_DATA.encodeInput(teacherPass) : null;
+    const ctfLiveMode = $('ctf-live-mode') ? $('ctf-live-mode').checked : false;
 
     btn.textContent = 'Publishing...';
     btn.disabled = true;
@@ -552,11 +617,12 @@
           examMode: examMode,
           enableTimer: enableTimer,
           timerMinutes: timerMinutes,
-          teacherPassHash: teacherPassHash, // not strictly used if results are hidden, but good to have
+          teacherPassHash: teacherPassHash,
+          ctfLiveMode: ctfLiveMode,
           status: 'active',
           createdAt: firebase.database.ServerValue.TIMESTAMP
         },
-        challenges: JSON.parse(JSON.stringify(localChallenges))
+        challenges: JSON.parse(JSON.stringify(selectedQ))
       };
 
       await db.ref('exams/' + examId).set(payload);
@@ -697,8 +763,50 @@
     $('live-leaderboard-tbody').innerHTML = html;
   }
 
+  // ─── JS Obfuscation Engine ──────────────────────────────────
+  function obfuscatePayload(jsCode) {
+    // Layer 1: Convert to char codes
+    const encoded = Array.from(jsCode).map(c => c.charCodeAt(0));
+    // Layer 2: XOR with rotating key
+    const key = [0x4F, 0x50, 0x48, 0x5F, 0x53, 0x45, 0x43]; // "OPH_SEC"
+    const xored = encoded.map((b, i) => b ^ key[i % key.length]);
+    // Layer 3: Base64 the result
+    const b64 = btoa(String.fromCharCode(...xored));
+    // Layer 4: Split into random chunks and scatter
+    const chunkSize = 76;
+    const chunks = [];
+    for (let i = 0; i < b64.length; i += chunkSize) {
+      chunks.push(b64.slice(i, i + chunkSize));
+    }
+    // Generate cryptic variable names
+    const varNames = chunks.map((_, i) => '_0x' + (0xa3f0 + i * 7).toString(16));
+    // Build the decoy + loader
+    let out = '/* [SecureLab Examiner] Integrity-Protected Payload — DO NOT MODIFY */\n';
+    out += '(function(){';
+    // Scatter the chunks as separate variables
+    chunks.forEach((chunk, i) => {
+      out += 'var ' + varNames[i] + '="' + chunk + '";';
+    });
+    // Reassemble
+    out += 'var _0xp=' + varNames.join('+') + ';';
+    // Decoder
+    out += 'var _0xk=[0x4F,0x50,0x48,0x5F,0x53,0x45,0x43];';
+    out += 'var _0xd=atob(_0xp);';
+    out += 'var _0xr="";';
+    out += 'for(var _0xi=0;_0xi<_0xd.length;_0xi++){';
+    out += '_0xr+=String.fromCharCode(_0xd.charCodeAt(_0xi)^_0xk[_0xi%_0xk.length]);';
+    out += '}';
+    // Add anti-debugger traps
+    out += 'setInterval(function(){(function(){return false;}).constructor("debugger")();},50);';
+    // Execute the decoded payload
+    out += 'Function(_0xr)();';
+    out += '})();';
+    return out;
+  }
+
   // ─── Build standalone HTML ────────────────────────────────────
-  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash) {
+  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, challengeSet) {
+    const exportChallenges = challengeSet || localChallenges;
     const quizID = Math.random().toString(36).substr(2, 9);
     
     // Check if we need Python
@@ -860,7 +968,7 @@ document.addEventListener('paste',function(e){e.preventDefault();});
 ` : ''}
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${getEmbeddedScript(JSON.stringify(localChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash)}<\/script>
+  <script>${obfuscatePayload(getEmbeddedScript(JSON.stringify(exportChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash))}<\/script>
 </body>
 </html>`;
   }

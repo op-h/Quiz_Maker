@@ -508,6 +508,12 @@
             <small>Auto-submits when time is up.</small>
           </div>
         </div>
+        <div class="form-row" style="margin-top: 10px;">
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
+            <input type="checkbox" id="ctf-live-mode" style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
+            <label for="ctf-live-mode" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">CTF Live Mode (First Blood bonus: first solver gets +10% points per question)</label>
+          </div>
+        </div>
       </div>
 
       <!-- List Section -->
@@ -517,13 +523,25 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
             Question Bank
           </h2>
-          <button class="danger" id="btn-reset-default" style="font-size:12px;padding:6px 12px;">Clear All</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button id="btn-export-json" style="font-size:11px;padding:5px 10px;" title="Export selected (or all) questions as JSON backup">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export JSON
+            </button>
+            <button id="btn-import-json" style="font-size:11px;padding:5px 10px;" title="Import questions from a JSON backup file">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Import JSON
+            </button>
+            <input type="file" id="json-file-input" accept=".json" style="display:none;">
+            <button class="danger" id="btn-reset-default" style="font-size:11px;padding:5px 10px;">Clear All</button>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="admin-table">
             <thead>
               <tr>
-                <th style="width:60px">ID</th>
+                <th style="width:40px"><input type="checkbox" id="select-all-q" title="Select All" style="width:16px;height:16px;cursor:pointer;"></th>
+                <th style="width:50px">ID</th>
                 <th style="width:180px">Topic / Info</th>
                 <th>Question (EN)</th>
                 <th style="width:160px">Answer / Hash</th>

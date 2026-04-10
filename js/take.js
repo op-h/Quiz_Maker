@@ -51,7 +51,8 @@
     maxScore: 0,
     isArabic: false,
     ended: false,
-    attempts: 0
+    attempts: 0,
+    ctfMode: false
   };
 
   var screens = {
@@ -243,6 +244,7 @@
     state.totalScore = 0;
     state.isArabic = false;
     state.startTime = Date.now();
+    state.ctfMode = !!(examMeta.ctfLiveMode);
 
     renderSidebar();
     if (state.gameChallenges.length > 0) {
@@ -375,8 +377,20 @@
       if (!selected) return showAlert('Please select an option.', false);
       ans = selected.value;
       ch.studentAnswer = ans;
-      ch.status = 'answered';
-      showAlert('Answer recorded.', true);
+      if (state.ctfMode) {
+        // CTF mode: grade MCQ immediately
+        if (encode(ans) === ch.hash) {
+          ch.status = 'solved';
+          awardCTFPoints(ch);
+          showAlert('Correct! Points awarded.', true);
+        } else {
+          ch.status = 'incorrect';
+          showAlert('Incorrect answer.', false);
+        }
+      } else {
+        ch.status = 'answered';
+        showAlert('Answer recorded.', true);
+      }
       $('btn-submit').disabled = true;
       setTimeout(proceedToNext, 800);
     } else {
@@ -384,8 +398,12 @@
       if (!ans.trim()) return showAlert('Please enter an answer.', false);
       ch.studentAnswer = ans;
       if (encode(ans) === ch.hash) {
-        state.totalScore += ch.pointsPotential;
         ch.status = 'solved';
+        if (state.ctfMode) {
+          awardCTFPoints(ch);
+        } else {
+          state.totalScore += ch.pointsPotential;
+        }
         showAlert('Answer accepted.', true);
         $('btn-submit').disabled = true;
         $('flag-input').disabled = true;
@@ -397,6 +415,39 @@
 
     syncToFirebase();
   });
+
+  // ─── CTF First Blood Scoring ──────────────────────────────
+  function awardCTFPoints(ch) {
+    var basePoints = ch.pointsPotential;
+    var questionKey = 'q_' + ch.id;
+    
+    if (!db || !EXAM_ID) {
+      // Offline fallback: just award base points
+      state.totalScore += basePoints;
+      return;
+    }
+
+    var solvedRef = db.ref('exams/' + EXAM_ID + '/first_blood/' + questionKey);
+    solvedRef.transaction(function(current) {
+      if (current === null) {
+        // First solver! Claim the first blood
+        return { solver: state.playerName, timestamp: Date.now() };
+      }
+      return; // Already claimed, abort transaction
+    }, function(error, committed) {
+      if (committed) {
+        // This student IS the first blood — award +10% bonus
+        var bonus = Math.round(basePoints * 0.1 * 100) / 100;
+        state.totalScore += basePoints + bonus;
+        showAlert('🩸 FIRST BLOOD! +' + bonus + ' bonus points!', true);
+      } else {
+        // Someone else solved it first — normal points
+        state.totalScore += basePoints;
+      }
+      syncToFirebase();
+      renderSidebar();
+    });
+  }
 
   function syncToFirebase() {
     if (!db || !state.playerName) return;
