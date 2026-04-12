@@ -322,6 +322,10 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           Exam Settings
         </button>
+        <button id="nav-ai">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.76 5.24H19l-4.25 3.09 1.62 5.22L12 12.4 7.63 15.55l1.62-5.22L5 7.24h5.24L12 2z"></path><path d="M19 14l.88 2.62H22.5l-2.13 1.55.81 2.63L19 19.21l-2.18 1.59.81-2.63-2.13-1.55h2.62L19 14z"></path></svg>
+          AI Studio
+        </button>
       </div>
       <div class="admin-sidebar-footer">
         <button class="theme-toggle" id="btn-theme" title="Toggle light/dark mode">Light Mode</button>
@@ -516,6 +520,112 @@
         </div>
       </div>
 
+      <!-- AI Studio Section -->
+      <div id="ai-section" class="admin-card" style="display:none;">
+        <div class="admin-card-header">
+          <h2>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.76 5.24H19l-4.25 3.09 1.62 5.22L12 12.4 7.63 15.55l1.62-5.22L5 7.24h5.24L12 2z"></path><path d="M19 14l.88 2.62H22.5l-2.13 1.55.81 2.63L19 19.21l-2.18 1.59.81-2.63-2.13-1.55h2.62L19 14z"></path></svg>
+            AI Studio
+          </h2>
+        </div>
+
+        <div class="ai-callout">
+          <strong>Teacher-side AI only.</strong> The builder stores these settings locally in your browser so you can generate questions and improve wording without affecting student-facing files.
+        </div>
+
+        <div class="ai-callout" style="margin-top:12px;">
+          <strong>Ollama note:</strong> if you use the free local Ollama provider, open this builder through `http://127.0.0.1:5500` or another local web server, not directly as a `file:///...` page.
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 220px;">
+            <label>AI Provider</label>
+            <select id="ai-provider">
+              <option value="ollama" selected>Ollama (Free Local)</option>
+              <option value="openai">OpenAI Responses</option>
+              <option value="custom">Custom OpenAI-Compatible</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>API Endpoint</label>
+            <input type="url" id="ai-endpoint" value="http://127.0.0.1:11434/api/chat" placeholder="http://127.0.0.1:11434/api/chat">
+            <small id="ai-endpoint-help">Free local endpoint. Make sure Ollama is running on your machine.</small>
+          </div>
+          <div class="form-group" style="flex:0 0 220px;">
+            <label>Model</label>
+            <input type="text" id="ai-model" value="llama3.2" placeholder="llama3.2" list="ai-model-suggestions">
+            <datalist id="ai-model-suggestions">
+              <option value="llama3.2"></option>
+              <option value="qwen2.5:7b"></option>
+              <option value="qwen2.5:14b"></option>
+              <option value="gpt-oss:20b"></option>
+            </datalist>
+            <small id="ai-model-help">Default local model is llama3.2. For stronger results on capable hardware, try qwen2.5:14b or gpt-oss:20b.</small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Bearer Token / API Key</label>
+            <input type="password" id="ai-api-key" placeholder="Enter your token or leave blank if your proxy handles auth">
+            <small id="ai-auth-help">No API key needed for local Ollama. Example: ollama pull llama3.2 or ollama pull qwen2.5:14b</small>
+          </div>
+        </div>
+
+        <div class="ai-divider"></div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Source Notes / Lesson Content</label>
+            <textarea id="ai-source-notes" rows="9" placeholder="Paste lesson notes, lecture text, textbook excerpts, study guides, or teacher instructions here."></textarea>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="flex:0 0 280px;">
+            <label>Optional Source File</label>
+            <input type="file" id="ai-source-file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown">
+            <small id="ai-source-file-status">Supported: PDF, TXT, MD.</small>
+          </div>
+          <div class="form-group" style="flex:0 0 120px;">
+            <label>Questions</label>
+            <input type="number" id="ai-question-count" min="1" max="20" value="5">
+          </div>
+          <div class="form-group" style="flex:0 0 180px;">
+            <label>Difficulty</label>
+            <select id="ai-difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:0 0 180px;">
+            <label>Question Mix</label>
+            <select id="ai-output-mode">
+              <option value="mixed" selected>Mixed</option>
+              <option value="mcq">MCQ only</option>
+              <option value="text">Text only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:10px;">
+          <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
+            <input type="checkbox" id="ai-include-arabic" checked style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
+            <label for="ai-include-arabic" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Generate Arabic versions too</label>
+          </div>
+        </div>
+
+        <div class="action-buttons" style="margin-top:24px; border-top: 1px solid var(--border-color); padding-top: 24px;">
+          <button class="primary" id="btn-ai-generate-quiz" type="button">Generate Questions from Notes/PDF</button>
+          <button id="btn-ai-import-generated" type="button" style="display:none;">Import Generated Questions</button>
+          <button id="btn-ai-clear-generated" type="button" style="display:none;">Clear Preview</button>
+        </div>
+
+        <div id="ai-generated-preview" class="ai-preview-empty">No AI-generated questions yet.</div>
+      </div>
+
       <!-- List Section -->
       <div id="list-section" class="admin-card">
         <div class="admin-card-header">
@@ -598,6 +708,19 @@
         </div>
 
         <div class="form-row">
+          <div class="form-group" style="margin:0;">
+            <label>AI Language Tools</label>
+            <div class="ai-inline-actions">
+              <button id="btn-ai-improve-en" type="button">Improve English</button>
+              <button id="btn-ai-generate-ar" type="button">Generate Arabic</button>
+              <button id="btn-ai-improve-ar" type="button">Improve Arabic</button>
+              <button id="btn-ai-generate-en" type="button">Generate English</button>
+            </div>
+            <small>These tools use the current topic and question fields and write directly back into the editor.</small>
+          </div>
+        </div>
+
+        <div class="form-row">
           <div class="form-group">
             <label>Optional Hint (shown to student)</label>
             <input type="text" id="edit-hint" placeholder="e.g. Think about the DOM structure">
@@ -642,6 +765,10 @@
                 <!-- Javascript will inject inputs here -->
               </div>
               <button id="btn-add-mcq-option" type="button" style="align-self: flex-start; margin-top: 8px;">+ Add Option</button>
+              <div class="ai-mcq-helper">
+                <button id="btn-ai-generate-distractors" type="button">AI Distractors</button>
+                <small>Select the correct answer first, then AI will add plausible wrong options.</small>
+              </div>
             </div>
           </div>
         </div>

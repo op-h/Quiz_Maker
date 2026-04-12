@@ -3,6 +3,32 @@
 
   // ─── State ────────────────────────────────────────────────────
   let localChallenges = [];
+  let aiGeneratedQuestions = [];
+
+  const AI_SETTINGS_KEY = '__quiz_maker_ai_settings';
+  const AI_DEFAULT_SETTINGS = {
+    provider: 'ollama',
+    endpoint: 'http://127.0.0.1:11434/api/chat',
+    model: 'llama3.2',
+    apiKey: ''
+  };
+  const AI_PROVIDER_PRESETS = {
+    ollama: {
+      endpoint: 'http://127.0.0.1:11434/api/chat',
+      model: 'llama3.2',
+      apiKey: ''
+    },
+    openai: {
+      endpoint: 'https://api.openai.com/v1/responses',
+      model: 'gpt-4o-mini',
+      apiKey: ''
+    },
+    custom: {
+      endpoint: 'https://api.openai.com/v1/responses',
+      model: 'gpt-4o-mini',
+      apiKey: ''
+    }
+  };
 
   // ─── Helpers ─────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
@@ -47,6 +73,10 @@
     if (saved) {
       try { localChallenges = JSON.parse(saved); } catch (e) { localChallenges = []; }
     }
+    applyAiSettingsToForm();
+    bindAiSettingsInputs();
+    updateAiSourceFileStatus();
+    renderAiGeneratedPreview();
     renderTable();
     showSection('list-section');
     
@@ -57,7 +87,7 @@
 
   // ─── Navigation ──────────────────────────────────────────────
   function showSection(id) {
-    ['list-section', 'editor-section', 'settings-section'].forEach(s => {
+    ['list-section', 'editor-section', 'settings-section', 'ai-section'].forEach(s => {
       const el = $(s);
       if (el) el.style.display = s === id ? 'block' : 'none';
     });
@@ -74,6 +104,8 @@
       if (btnId === 'nav-add') {
         openEditor(null);
         showSection('editor-section');
+      } else if (btnId === 'nav-ai') {
+        showSection('ai-section');
       } else if (btnId === 'nav-settings') {
         showSection('settings-section');
       } else {
@@ -466,6 +498,740 @@
     localChallenges.sort((a, b) => a.id - b.id);
     localStorage.setItem('__ctf_exam_builder', JSON.stringify(localChallenges));
   }
+
+  function loadAiSettings() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(AI_SETTINGS_KEY) || '{}') || {};
+      const settings = Object.assign({}, AI_DEFAULT_SETTINGS, parsed);
+      if (!parsed.provider) {
+        if (/127\.0\.0\.1:11434|localhost:11434/i.test(settings.endpoint || '')) settings.provider = 'ollama';
+        else if (/api\.openai\.com/i.test(settings.endpoint || '')) settings.provider = 'openai';
+        else settings.provider = 'custom';
+      }
+      return settings;
+    } catch (err) {
+      return Object.assign({}, AI_DEFAULT_SETTINGS);
+    }
+  }
+
+  function getAiSettingsFromForm() {
+    return {
+      provider: (($('ai-provider') && $('ai-provider').value) || AI_DEFAULT_SETTINGS.provider).trim(),
+      endpoint: (($('ai-endpoint') && $('ai-endpoint').value) || AI_DEFAULT_SETTINGS.endpoint).trim(),
+      model: (($('ai-model') && $('ai-model').value) || AI_DEFAULT_SETTINGS.model).trim(),
+      apiKey: (($('ai-api-key') && $('ai-api-key').value) || '').trim()
+    };
+  }
+
+  function applyAiSettingsToForm() {
+    const settings = loadAiSettings();
+    if ($('ai-provider')) $('ai-provider').value = settings.provider || AI_DEFAULT_SETTINGS.provider;
+    if ($('ai-endpoint')) $('ai-endpoint').value = settings.endpoint;
+    if ($('ai-model')) $('ai-model').value = settings.model;
+    if ($('ai-api-key')) $('ai-api-key').value = settings.apiKey;
+    syncAiProviderUi();
+  }
+
+  function persistAiSettings() {
+    localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(getAiSettingsFromForm()));
+  }
+
+  function bindAiSettingsInputs() {
+    ['ai-endpoint', 'ai-model', 'ai-api-key'].forEach(id => {
+      const el = $(id);
+      if (el) el.addEventListener('input', persistAiSettings);
+    });
+    if ($('ai-provider')) {
+      $('ai-provider').addEventListener('change', function() {
+        applyAiProviderPreset(this.value);
+      });
+    }
+    if ($('ai-source-file')) $('ai-source-file').addEventListener('change', updateAiSourceFileStatus);
+  }
+
+  function ensureAiSettings() {
+    const settings = getAiSettingsFromForm();
+    if (!settings.endpoint) throw new Error('Set an AI endpoint in AI Studio first.');
+    if (!settings.model) throw new Error('Set an AI model in AI Studio first.');
+    if (settings.provider === 'ollama' && window.location.protocol === 'file:') {
+      throw new Error('Ollama cannot be called from a file:// page. Start a local server in this folder, then open http://127.0.0.1:5500/index.html. On Windows, run: py -m http.server 5500');
+    }
+    if (settings.provider !== 'ollama' && !settings.apiKey && /api\.openai\.com/i.test(settings.endpoint)) {
+      throw new Error('Enter an API key for the default OpenAI endpoint, or switch the endpoint to your own proxy.');
+    }
+    return settings;
+  }
+
+  function syncAiProviderUi() {
+    const provider = (($('ai-provider') && $('ai-provider').value) || AI_DEFAULT_SETTINGS.provider).trim();
+    const endpointHelp = $('ai-endpoint-help');
+    const modelHelp = $('ai-model-help');
+    const authHelp = $('ai-auth-help');
+
+    if (provider === 'ollama') {
+      if (endpointHelp) endpointHelp.textContent = window.location.protocol === 'file:'
+        ? 'Ollama is local and free, but this page is opened with file://. Start a local web server and reopen the builder from http://127.0.0.1:5500.'
+        : 'Free local endpoint. Make sure Ollama is running on your machine.';
+      if (modelHelp) modelHelp.textContent = 'Default local model is llama3.2. For stronger results on capable hardware, try qwen2.5:14b or gpt-oss:20b.';
+      if (authHelp) authHelp.textContent = window.location.protocol === 'file:'
+        ? 'No API key needed. First run a local server for this folder: py -m http.server 5500. Then open http://127.0.0.1:5500/index.html'
+        : 'No API key needed for local Ollama. Example: ollama pull llama3.2 or ollama pull qwen2.5:14b';
+      return;
+    }
+
+    if (provider === 'openai') {
+      if (endpointHelp) endpointHelp.textContent = 'Official OpenAI Responses API endpoint.';
+      if (modelHelp) modelHelp.textContent = 'Supports structured JSON output and direct PDF input.';
+      if (authHelp) authHelp.textContent = 'Stored only in this browser. For production or shared machines, use your own backend/proxy instead of exposing a real secret in the browser.';
+      return;
+    }
+
+    if (endpointHelp) endpointHelp.textContent = 'Use your own OpenAI-compatible proxy or hosted provider endpoint.';
+    if (modelHelp) modelHelp.textContent = 'Choose a model that supports strong instruction following and JSON-style outputs.';
+    if (authHelp) authHelp.textContent = 'Leave blank only if your custom endpoint handles authentication upstream.';
+  }
+
+  function applyAiProviderPreset(provider) {
+    const preset = AI_PROVIDER_PRESETS[provider] || AI_PROVIDER_PRESETS.custom;
+    if ($('ai-provider')) $('ai-provider').value = provider;
+    if ($('ai-endpoint')) $('ai-endpoint').value = preset.endpoint;
+    if ($('ai-model')) $('ai-model').value = preset.model;
+    if ($('ai-api-key') && provider === 'ollama') $('ai-api-key').value = '';
+    syncAiProviderUi();
+    persistAiSettings();
+    updateAiSourceFileStatus();
+  }
+
+  function updateAiSourceFileStatus() {
+    const label = $('ai-source-file-status');
+    const input = $('ai-source-file');
+    if (!label || !input) return;
+    const file = input.files && input.files[0];
+    const provider = (($('ai-provider') && $('ai-provider').value) || AI_DEFAULT_SETTINGS.provider).trim();
+    if (!file) {
+      label.textContent = provider === 'ollama'
+        ? 'Supported directly with Ollama: TXT, MD. PDFs should be pasted as text unless your proxy handles them.'
+        : 'Supported: PDF, TXT, MD.';
+      return;
+    }
+    if (provider === 'ollama' && (/pdf$/i.test(file.name) || file.type === 'application/pdf')) {
+      label.textContent = 'Selected PDF: ' + file.name + '. Ollama mode cannot send PDFs directly; paste extracted text instead.';
+      return;
+    }
+    label.textContent = 'Selected: ' + file.name + ' (' + Math.max(1, Math.round(file.size / 1024)) + ' KB)';
+  }
+
+  function setBusyState(btn, busy, busyText) {
+    if (!btn) return;
+    if (busy) {
+      if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+      btn.disabled = true;
+      btn.textContent = busyText;
+    } else {
+      btn.disabled = false;
+      if (btn.dataset.originalHtml) {
+        btn.innerHTML = btn.dataset.originalHtml;
+        delete btn.dataset.originalHtml;
+      }
+    }
+  }
+
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read file: ' + file.name));
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.readAsText(file);
+    });
+  }
+
+  function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Could not read file: ' + file.name));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function extractResponseText(payload) {
+    if (typeof payload.output_text === 'string' && payload.output_text.trim()) {
+      return payload.output_text.trim();
+    }
+    const refusal = [];
+    const textParts = [];
+    (payload.output || []).forEach(item => {
+      (item.content || []).forEach(part => {
+        if (part.type === 'refusal' && part.refusal) refusal.push(part.refusal);
+        if ((part.type === 'output_text' || part.type === 'text') && typeof part.text === 'string') {
+          textParts.push(part.text);
+        }
+      });
+    });
+    if (refusal.length) throw new Error(refusal.join('\n'));
+    const text = textParts.join('\n').trim();
+    if (!text) throw new Error('AI returned no text output.');
+    return text;
+  }
+
+  function flattenAiUserContentToText(userContent, provider) {
+    const parts = [];
+    (userContent || []).forEach(part => {
+      if (part.type === 'input_text' && typeof part.text === 'string') {
+        parts.push(part.text);
+        return;
+      }
+      if (part.type === 'input_file') {
+        if (provider === 'ollama') {
+          throw new Error('PDF/file upload is not sent directly to Ollama. Paste the notes or convert the PDF to text first.');
+        }
+      }
+    });
+    return parts.join('\n\n').trim();
+  }
+
+  async function callOpenAiCompatibleJson(settings, options) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (settings.apiKey) headers.Authorization = 'Bearer ' + settings.apiKey;
+
+    const body = {
+      model: settings.model,
+      input: [
+        {
+          role: 'system',
+          content: [{ type: 'input_text', text: options.systemPrompt }]
+        },
+        {
+          role: 'user',
+          content: options.userContent
+        }
+      ],
+      text: {
+        format: {
+          type: 'json_schema',
+          name: options.schemaName,
+          strict: true,
+          schema: options.schema
+        }
+      }
+    };
+
+    let response;
+    try {
+      response = await fetch(settings.endpoint, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+    } catch (err) {
+      throw new Error('AI request failed: ' + err.message);
+    }
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (err) {
+      throw new Error('AI endpoint returned invalid JSON.');
+    }
+
+    if (!response.ok) {
+      const message = payload && payload.error && payload.error.message
+        ? payload.error.message
+        : 'HTTP ' + response.status;
+      throw new Error(message);
+    }
+
+    return JSON.parse(extractResponseText(payload));
+  }
+
+  async function callOllamaJson(settings, options) {
+    const promptText = flattenAiUserContentToText(options.userContent, 'ollama');
+    const body = {
+      model: settings.model,
+      stream: false,
+      format: options.schema,
+      messages: [
+        { role: 'system', content: options.systemPrompt },
+        { role: 'user', content: promptText }
+      ]
+    };
+
+    let response;
+    try {
+      response = await fetch(settings.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    } catch (err) {
+      throw new Error('Ollama request failed: ' + err.message);
+    }
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (err) {
+      throw new Error('Ollama returned invalid JSON.');
+    }
+
+    if (!response.ok) {
+      const message = payload && payload.error ? payload.error : ('HTTP ' + response.status);
+      throw new Error(message);
+    }
+
+    const text = payload && payload.message && typeof payload.message.content === 'string'
+      ? payload.message.content.trim()
+      : '';
+    if (!text) throw new Error('Ollama returned no message content.');
+
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      throw new Error('Ollama did not return valid JSON. Try a stronger model or a smaller prompt.');
+    }
+  }
+
+  async function callAiJson(options) {
+    const settings = ensureAiSettings();
+    if (settings.provider === 'ollama') {
+      return callOllamaJson(settings, options);
+    }
+    return callOpenAiCompatibleJson(settings, options);
+  }
+
+  function buildTextAnswerFormat(answer) {
+    return answer.split('').map(c => c === ' ' ? ' ' : '-').join('');
+  }
+
+  function dedupeOptions(options) {
+    const seen = new Set();
+    const out = [];
+    options.forEach(opt => {
+      const text = String((opt && opt.text) || '').trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ text, isCorrect: !!opt.isCorrect });
+    });
+    return out;
+  }
+
+  function normalizeAiQuestions(items) {
+    if (!Array.isArray(items)) return [];
+
+    return items.map((item, idx) => {
+      const type = item && item.type === 'mcq' ? 'mcq' : 'text';
+      const topic = String((item && item.topic) || '').trim() || ('AI Generated Topic ' + (idx + 1));
+      const q = String((item && item.question_en) || '').trim();
+      const qAr = String((item && item.question_ar) || '').trim();
+      const hint = String((item && item.hint) || '').trim();
+      const answerText = String((item && item.answer_text) || '').trim();
+
+      if (!q) return null;
+
+      if (type === 'mcq') {
+        let options = Array.isArray(item.options)
+          ? item.options.map(opt => ({
+              text: String((opt && opt.text) || '').trim(),
+              isCorrect: !!(opt && opt.is_correct)
+            }))
+          : [];
+
+        if (answerText && !options.some(opt => opt.text.toLowerCase() === answerText.toLowerCase())) {
+          options.unshift({ text: answerText, isCorrect: true });
+        }
+
+        options = dedupeOptions(options.map(opt => ({
+          text: opt.text,
+          isCorrect: opt.isCorrect || (!!answerText && opt.text.toLowerCase() === answerText.toLowerCase())
+        })));
+
+        const correct = options.filter(opt => opt.isCorrect);
+        if (options.length < 2 || correct.length !== 1) return null;
+
+        const correctText = correct[0].text;
+        return {
+          points: 10,
+          topic,
+          type: 'mcq',
+          q,
+          qAr,
+          hint,
+          options,
+          hash: window.CTF_DATA.encodeInput(correctText),
+          ansLen: correctText.length,
+          format: 'Multiple Choice'
+        };
+      }
+
+      if (!answerText) return null;
+      return {
+        points: 10,
+        topic,
+        type: 'text',
+        q,
+        qAr,
+        hint,
+        hash: window.CTF_DATA.encodeInput(answerText),
+        ansLen: answerText.length,
+        format: buildTextAnswerFormat(answerText)
+      };
+    }).filter(Boolean);
+  }
+
+  function renderAiGeneratedPreview() {
+    const container = $('ai-generated-preview');
+    const importBtn = $('btn-ai-import-generated');
+    const clearBtn = $('btn-ai-clear-generated');
+    if (!container) return;
+
+    if (!aiGeneratedQuestions.length) {
+      container.className = 'ai-preview-empty';
+      container.textContent = 'No AI-generated questions yet.';
+      if (importBtn) importBtn.style.display = 'none';
+      if (clearBtn) clearBtn.style.display = 'none';
+      return;
+    }
+
+    container.className = 'ai-preview-list';
+    container.innerHTML = aiGeneratedQuestions.map((q, idx) => {
+      const optionsHtml = q.type === 'mcq'
+        ? '<div class="ai-preview-options">' + q.options.map(opt => (
+            '<div class="ai-preview-option' + (opt.isCorrect ? ' correct' : '') + '">' +
+            escHtml(opt.text) +
+            (opt.isCorrect ? ' <strong>(Correct)</strong>' : '') +
+            '</div>'
+          )).join('') + '</div>'
+        : '';
+
+      return (
+        '<div class="ai-preview-card">' +
+          '<div class="ai-preview-head">' +
+            '<div class="ai-preview-title">' + (idx + 1) + '. ' + escHtml(q.topic) + '</div>' +
+            '<div class="ai-preview-badges">' +
+              '<span class="ai-preview-badge">' + escHtml(q.type.toUpperCase()) + '</span>' +
+              (q.qAr ? '<span class="ai-preview-badge">Bilingual</span>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="ai-preview-text">' + escHtml(q.q) + '</div>' +
+          (q.qAr ? '<div class="ai-preview-text ai-preview-ar">' + escHtml(q.qAr) + '</div>' : '') +
+          optionsHtml +
+        '</div>'
+      );
+    }).join('');
+
+    if (importBtn) importBtn.style.display = 'inline-flex';
+    if (clearBtn) clearBtn.style.display = 'inline-flex';
+  }
+
+  function importAiGeneratedQuestions() {
+    if (!aiGeneratedQuestions.length) return showAlert('No AI-generated questions to import.', false);
+    let nextId = localChallenges.length > 0 ? Math.max(...localChallenges.map(x => x.id)) + 1 : 1;
+    aiGeneratedQuestions.forEach(q => {
+      localChallenges.push(Object.assign({ id: nextId++ }, q));
+    });
+    saveToStorage();
+    renderTable();
+    showAlert('Imported ' + aiGeneratedQuestions.length + ' AI-generated question(s).', true);
+    aiGeneratedQuestions = [];
+    renderAiGeneratedPreview();
+    showSection('list-section');
+    document.querySelectorAll('.admin-sidebar-nav button').forEach(b => b.classList.remove('active'));
+    if ($('nav-list')) $('nav-list').classList.add('active');
+  }
+
+  async function buildAiSourceContent(notes, file, options) {
+    const content = [];
+    const requestSummary = [
+      'Create ' + options.count + ' classroom-ready quiz questions.',
+      'Difficulty: ' + options.difficulty + '.',
+      'Question mix: ' + options.mode + '.',
+      options.includeArabic ? 'Provide Arabic translations in question_ar.' : 'Set question_ar to an empty string.',
+      'Use only facts supported by the provided material.'
+    ].join(' ');
+
+    content.push({ type: 'input_text', text: requestSummary });
+
+    const trimmedNotes = notes.trim();
+    if (trimmedNotes) {
+      content.push({ type: 'input_text', text: 'Teacher notes:\n' + trimmedNotes });
+    }
+
+    if (file) {
+      if (/pdf$/i.test(file.name) || file.type === 'application/pdf') {
+        const bytes = new Uint8Array(await readFileAsArrayBuffer(file));
+        content.push({
+          type: 'input_file',
+          filename: file.name,
+          file_data: encodeBytesToBase64(bytes)
+        });
+      } else {
+        const text = await readFileAsText(file);
+        content.push({
+          type: 'input_text',
+          text: 'File content from ' + file.name + ':\n' + text
+        });
+      }
+    }
+
+    return content;
+  }
+
+  async function generateQuizFromAi() {
+    const notes = ($('ai-source-notes').value || '').trim();
+    const sourceFile = $('ai-source-file').files && $('ai-source-file').files[0];
+    const btn = $('btn-ai-generate-quiz');
+    const options = {
+      count: Math.max(1, Math.min(20, parseInt($('ai-question-count').value, 10) || 5)),
+      difficulty: $('ai-difficulty').value || 'medium',
+      mode: $('ai-output-mode').value || 'mixed',
+      includeArabic: !!$('ai-include-arabic').checked
+    };
+
+    if (!notes && !sourceFile) {
+      showSection('ai-section');
+      return showAlert('Paste notes or choose a source file before generating AI questions.', false);
+    }
+
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        title_suggestion: { type: 'string' },
+        questions: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              topic: { type: 'string' },
+              type: { type: 'string', enum: ['mcq', 'text'] },
+              question_en: { type: 'string' },
+              question_ar: { type: 'string' },
+              hint: { type: 'string' },
+              answer_text: { type: 'string' },
+              options: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    text: { type: 'string' },
+                    is_correct: { type: 'boolean' }
+                  },
+                  required: ['text', 'is_correct']
+                }
+              }
+            },
+            required: ['topic', 'type', 'question_en', 'question_ar', 'hint', 'answer_text', 'options']
+          }
+        }
+      },
+      required: ['title_suggestion', 'questions']
+    };
+
+    const systemPrompt = [
+      'You are an assessment design assistant for a secure classroom quiz builder.',
+      'Create accurate questions based only on the provided notes or PDF.',
+      'Do not invent unsupported facts.',
+      'Use concise exam wording.',
+      'For mcq questions, produce exactly 4 options with exactly 1 correct answer.',
+      'For text questions, answer_text must be a short exact answer suitable for hashing.',
+      'If Arabic is not requested, set question_ar to an empty string.'
+    ].join(' ');
+
+    setBusyState(btn, true, 'Generating...');
+    try {
+      const payload = await callAiJson({
+        systemPrompt,
+        userContent: await buildAiSourceContent(notes, sourceFile, options),
+        schemaName: 'quiz_generation',
+        schema
+      });
+
+      aiGeneratedQuestions = normalizeAiQuestions(payload.questions);
+      if (!aiGeneratedQuestions.length) throw new Error('AI returned questions, but none could be converted into valid quiz items.');
+
+      const titleInput = $('exam-title');
+      const titleSuggestion = String((payload && payload.title_suggestion) || '').trim();
+      if (titleInput && titleSuggestion && (!titleInput.value.trim() || titleInput.value.trim() === 'Custom Exam')) {
+        titleInput.value = titleSuggestion;
+      }
+
+      renderAiGeneratedPreview();
+      showAlert('AI generated ' + aiGeneratedQuestions.length + ' question(s). Review and import when ready.', true);
+    } catch (err) {
+      showAlert('AI generation failed: ' + err.message, false);
+    } finally {
+      setBusyState(btn, false);
+    }
+  }
+
+  async function updateQuestionWithAi(action) {
+    const btnMap = {
+      improve_en: 'btn-ai-improve-en',
+      generate_ar: 'btn-ai-generate-ar',
+      improve_ar: 'btn-ai-improve-ar',
+      generate_en: 'btn-ai-generate-en'
+    };
+    const targetMap = {
+      improve_en: 'edit-q-en',
+      generate_ar: 'edit-q-ar',
+      improve_ar: 'edit-q-ar',
+      generate_en: 'edit-q-en'
+    };
+    const btn = $(btnMap[action]);
+    const topic = ($('edit-topic').value || '').trim();
+    const questionEn = ($('edit-q-en').value || '').trim();
+    const questionAr = ($('edit-q-ar').value || '').trim();
+    const hint = ($('edit-hint').value || '').trim();
+
+    const hasSource = action === 'generate_ar' || action === 'improve_en'
+      ? questionEn
+      : questionAr;
+    if (!topic || !hasSource) {
+      return showAlert('Enter the topic and source question text before using AI wording tools.', false);
+    }
+
+    const instructions = {
+      improve_en: 'Improve the English quiz question for clarity, correctness, and exam tone without changing what is being tested.',
+      generate_ar: 'Translate the English quiz question into clear Modern Standard Arabic suitable for students.',
+      improve_ar: 'Improve the Arabic quiz question for clarity and natural Modern Standard Arabic without changing what is being tested.',
+      generate_en: 'Translate the Arabic quiz question into clear, natural English suitable for students.'
+    };
+
+    const systemPrompt = [
+      'You rewrite quiz questions while preserving the exact skill and intended answer.',
+      'Do not add new facts.',
+      'Return only the rewritten question in the requested target language.'
+    ].join(' ');
+
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        result: { type: 'string' }
+      },
+      required: ['result']
+    };
+
+    setBusyState(btn, true, 'Working...');
+    try {
+      const payload = await callAiJson({
+        systemPrompt,
+        userContent: [{
+          type: 'input_text',
+          text: [
+            instructions[action],
+            'Topic: ' + topic,
+            'English question: ' + (questionEn || '(empty)'),
+            'Arabic question: ' + (questionAr || '(empty)'),
+            'Hint: ' + (hint || '(empty)')
+          ].join('\n')
+        }],
+        schemaName: 'question_language_edit',
+        schema
+      });
+
+      const target = $(targetMap[action]);
+      if (target) target.value = String(payload.result || '').trim();
+      showAlert('Question text updated with AI.', true);
+    } catch (err) {
+      showAlert('AI wording failed: ' + err.message, false);
+    } finally {
+      setBusyState(btn, false);
+    }
+  }
+
+  async function generateDistractorsWithAi() {
+    if ($('edit-type').value !== 'mcq') {
+      return showAlert('Switch the question type to Multiple Choice first.', false);
+    }
+
+    const rows = [...document.querySelectorAll('.mcq-option-row')];
+    const correctRow = rows.find(row => row.querySelector('input[type="radio"]').checked);
+    if (!correctRow) return showAlert('Select the correct option first.', false);
+
+    const correctText = correctRow.querySelector('.mcq-val').value.trim();
+    if (!correctText) return showAlert('Fill in the correct option text first.', false);
+
+    const question = ($('edit-q-en').value || '').trim();
+    const topic = ($('edit-topic').value || '').trim();
+    if (!question || !topic) return showAlert('Add the topic and English question text first.', false);
+
+    const existingOptions = rows
+      .map(row => row.querySelector('.mcq-val').value.trim())
+      .filter(Boolean);
+
+    const btn = $('btn-ai-generate-distractors');
+    const schema = {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        distractors: {
+          type: 'array',
+          items: { type: 'string' }
+        }
+      },
+      required: ['distractors']
+    };
+
+    setBusyState(btn, true, 'Generating...');
+    try {
+      const payload = await callAiJson({
+        systemPrompt: [
+          'You generate plausible but incorrect multiple-choice distractors.',
+          'They must be clearly wrong, not duplicates of the correct answer, and similar in style and length.',
+          'Do not use "all of the above" or "none of the above".',
+          'Return exactly 3 distractors.'
+        ].join(' '),
+        userContent: [{
+          type: 'input_text',
+          text: [
+            'Topic: ' + topic,
+            'Question: ' + question,
+            'Correct answer: ' + correctText,
+            'Existing options: ' + (existingOptions.join(' | ') || '(none)')
+          ].join('\n')
+        }],
+        schemaName: 'mcq_distractors',
+        schema
+      });
+
+      let added = 0;
+      const seen = new Set(existingOptions.map(opt => opt.toLowerCase()));
+      (payload.distractors || []).forEach(text => {
+        const value = String(text || '').trim();
+        if (!value) return;
+        const key = value.toLowerCase();
+        if (seen.has(key) || key === correctText.toLowerCase()) return;
+        seen.add(key);
+        addMcqOption(value, false);
+        added++;
+      });
+
+      if (!added) return showAlert('AI did not return any new distractors to add.', false);
+      showAlert('Added ' + added + ' AI distractor option(s).', true);
+    } catch (err) {
+      showAlert('Distractor generation failed: ' + err.message, false);
+    } finally {
+      setBusyState(btn, false);
+    }
+  }
+
+  if ($('btn-ai-generate-quiz')) $('btn-ai-generate-quiz').addEventListener('click', generateQuizFromAi);
+  if ($('btn-ai-import-generated')) $('btn-ai-import-generated').addEventListener('click', importAiGeneratedQuestions);
+  if ($('btn-ai-clear-generated')) $('btn-ai-clear-generated').addEventListener('click', () => {
+    aiGeneratedQuestions = [];
+    renderAiGeneratedPreview();
+    showAlert('AI preview cleared.', true);
+  });
+  if ($('btn-ai-improve-en')) $('btn-ai-improve-en').addEventListener('click', () => updateQuestionWithAi('improve_en'));
+  if ($('btn-ai-generate-ar')) $('btn-ai-generate-ar').addEventListener('click', () => updateQuestionWithAi('generate_ar'));
+  if ($('btn-ai-improve-ar')) $('btn-ai-improve-ar').addEventListener('click', () => updateQuestionWithAi('improve_ar'));
+  if ($('btn-ai-generate-en')) $('btn-ai-generate-en').addEventListener('click', () => updateQuestionWithAi('generate_en'));
+  if ($('btn-ai-generate-distractors')) $('btn-ai-generate-distractors').addEventListener('click', generateDistractorsWithAi);
 
   // ─── Reset ───────────────────────────────────────────────────
   $('btn-reset-default').addEventListener('click', () => {

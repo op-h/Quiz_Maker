@@ -38,6 +38,9 @@
 - MCQ, Text, and Code question types
 - File attachment support (images, PDFs, code)
 - Arabic translation with one click
+- AI Studio for notes/PDF-to-quiz generation
+- AI distractor generation for MCQs
+- AI English/Arabic wording improvement
 - Light & dark mode toggle
 - LocalStorage persistence — never lose your work
 
@@ -107,9 +110,19 @@
 
 ```
 1.  Open index.html in your browser
-2.  Add questions using the sidebar navigation
+2.  Add questions using the sidebar navigation or AI Studio
 3.  Configure title, password, timer, and security settings
 4.  Click "Export Offline HTML" → downloads a standalone exam file
+```
+
+### AI Features (Teacher Builder)
+
+```
+1.  Open AI Studio in the sidebar
+2.  Enter your Responses API endpoint, model, and token (or your own proxy URL)
+3.  Paste notes or upload a PDF/TXT/MD file
+4.  Generate questions, review the preview, then import them into the question bank
+5.  Use the editor AI buttons to improve English/Arabic wording or generate MCQ distractors
 ```
 
 ### Hosting a Live Exam (Online)
@@ -168,6 +181,18 @@ const FIREBASE_CONFIG = {
 > **Note:** Firebase web API keys are designed to be client-side. Secure your data using [Firebase Security Rules](https://firebase.google.com/docs/database/security), not by hiding the config.
 
 </details>
+
+### AI Setup (for AI Studio)
+
+- The builder supports:
+  `Ollama (free local)` for notes-to-quiz, distractors, and language improvement
+  `OpenAI Responses` for hosted generation plus direct PDF file input
+  `Custom OpenAI-compatible` endpoints/proxies
+- For local/personal use, `Ollama` is the easiest free option. Run Ollama locally, pull a model such as `llama3.2`, `qwen2.5:14b`, or `gpt-oss:20b`, then select `Ollama (Free Local)` in `AI Studio`.
+- When using `Ollama` in the browser, do not open the builder as `file:///...`. Serve the folder locally instead, for example:
+  `py -m http.server 5500`
+  then open `http://127.0.0.1:5500/index.html`
+- For production or shared environments, route AI calls through your own backend/proxy instead of exposing a real secret in the browser.
 
 <br>
 
