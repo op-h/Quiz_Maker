@@ -184,6 +184,10 @@
       overflow-y: auto;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-color);
+      max-height: min(68vh, calc(100vh - 270px));
+      scrollbar-gutter: stable both-edges;
+      position: relative;
+      isolation: isolate;
     }
     table.admin-table {
       width: 100%;
@@ -193,7 +197,7 @@
       font-family: var(--font-mono);
       table-layout: fixed;
     }
-    .admin-table thead { position: sticky; top: 0; z-index: 2; }
+    .admin-table thead { position: static; }
     .admin-table th, .admin-table td {
       border-bottom: 1px solid var(--border-color);
       padding: 12px 16px;
@@ -202,16 +206,52 @@
       word-break: break-word;
     }
     .admin-table th {
-      background: var(--panel-hover);
+      position: sticky;
+      top: 0;
+      z-index: 4;
+      background: var(--bg-color);
+      background-clip: padding-box;
       color: var(--text-muted);
       font-weight: 700;
       font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
+      box-shadow:
+        inset 0 -1px 0 var(--border-color),
+        0 8px 18px rgba(0,0,0,.18);
     }
     .admin-table tbody tr { transition: background .15s; }
     .admin-table tbody tr:hover td { background: rgba(88,166,255,.04); }
     .admin-table .actions { display: flex; gap: 8px; flex-direction: column; }
+    .question-preview {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      overflow: hidden;
+      white-space: pre-line;
+      line-height: 1.55;
+      color: var(--text-main);
+      word-break: break-word;
+    }
+    .question-preview-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .question-preview-meta span {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(88,166,255,.08);
+      border: 1px solid rgba(88,166,255,.12);
+      color: var(--text-muted);
+      font-size: 10px;
+      letter-spacing: .3px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
 
     /* ─── Type Badges ────────────────────────── */
     .type-badge {
@@ -230,6 +270,16 @@
     }
     .type-badge.mcq  { background: rgba(88,166,255,.1);  color: var(--accent-primary); border-color: rgba(88,166,255,.2); }
     .type-badge.code { background: rgba(227,179,65,.1);  color: var(--accent-warning); border-color: rgba(227,179,65,.2); }
+
+    #list-section {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #list-section .table-responsive {
+      flex: 1 1 auto;
+      min-height: 320px;
+    }
 
     /* ─── Forms ─────────────────────────────── */
     #editor-section, #settings-section { display: none; }
@@ -296,6 +346,79 @@
     }
 
     .hide { display: none !important; }
+
+    @media (max-width: 1100px) {
+      .admin-workspace { padding: 22px; }
+      .form-row { flex-wrap: wrap; }
+      table.admin-table { min-width: 720px; }
+      .table-responsive {
+        max-height: min(64vh, calc(100vh - 250px));
+      }
+    }
+
+    @media (max-width: 900px) {
+      #dashboard-screen {
+        flex-direction: column;
+        width: 100%;
+      }
+      .admin-sidebar {
+        width: 100%;
+        min-width: 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .admin-sidebar::after { display: none; }
+      .admin-sidebar-header { padding: 18px 18px 12px; }
+      .admin-sidebar-nav {
+        flex: 0 0 auto;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 12px 14px;
+        gap: 8px;
+      }
+      .admin-sidebar-nav button {
+        min-width: max-content;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+      }
+      .admin-sidebar-nav button:hover,
+      .admin-sidebar-nav button.active {
+        border-left-color: var(--accent-primary);
+      }
+      .admin-sidebar-footer {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .admin-workspace { padding: 18px; }
+      .admin-card { padding: 20px; }
+      .admin-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      .table-responsive {
+        max-height: min(58vh, calc(100vh - 230px));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .admin-sidebar-footer {
+        grid-template-columns: 1fr;
+      }
+      .form-row {
+        flex-direction: column;
+        gap: 14px;
+      }
+      .admin-workspace { padding: 14px; }
+      .admin-card { padding: 18px; }
+      table.admin-table { min-width: 620px; }
+      .question-preview { -webkit-line-clamp: 2; }
+      .table-responsive {
+        min-height: 260px;
+        max-height: min(56vh, calc(100vh - 210px));
+      }
+    }
   </style>
 </head>
 
@@ -329,6 +452,10 @@
       </div>
       <div class="admin-sidebar-footer">
         <button class="theme-toggle" id="btn-theme" title="Toggle light/dark mode">Light Mode</button>
+        <button id="btn-toggle-ai" type="button" title="Enable or disable all instructor AI tools">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.76 5.24H19l-4.25 3.09 1.62 5.22L12 12.4 7.63 15.55l1.62-5.22L5 7.24h5.24L12 2z"></path></svg>
+          AI Tools: On
+        </button>
         <div style="display: flex; gap: 8px; flex-direction: column;">
           <button class="success" id="btn-create-quiz">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -516,6 +643,21 @@
           <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
             <input type="checkbox" id="ctf-live-mode" style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
             <label for="ctf-live-mode" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">CTF Live Mode (First Blood bonus: first solver gets +10% points per question)</label>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top: 10px; align-items: flex-end;">
+          <div class="form-group" style="flex: 0 0 260px;">
+            <label>Retake Button (Offline HTML)</label>
+            <div style="display:flex;align-items:center;gap:10px;min-height:42px;">
+              <input type="checkbox" id="allow-retake" checked style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
+              <label for="allow-retake" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Show retake button after exam</label>
+            </div>
+            <small>If disabled, the exported results screen ends without a retry button.</small>
+          </div>
+          <div class="form-group" style="flex: 0 0 260px;">
+            <label>Questions Per Attempt (Offline HTML)</label>
+            <input type="number" id="offline-question-limit" min="1" max="500" placeholder="Leave blank to use all exported questions">
+            <small>Example: export 40 questions, but show only 10 random questions on each page reset or retake.</small>
           </div>
         </div>
       </div>

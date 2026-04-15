@@ -28,14 +28,23 @@ if not exist "%OLLAMA_CLI%" (
 )
 
 echo [2/6] Ensuring OLLAMA_ORIGINS contains %SITE_ORIGIN%...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+set "UPDATED_OLLAMA_ORIGINS="
+for /f "usebackq delims=" %%I in (`powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$required = '%SITE_ORIGIN%';" ^
-  "$current = [Environment]::GetEnvironmentVariable('OLLAMA_ORIGINS', 'User');" ^
-  "$parts = @();" ^
-  "if ($current) { $parts = $current -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ } }" ^
-  "if ($parts -contains $required) { Write-Host ('OLLAMA_ORIGINS already contains ' + $required) }" ^
-  "else { $updated = @($parts + $required) -join ','; [Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS', $updated, 'User'); Write-Host ('OLLAMA_ORIGINS updated to: ' + $updated) }"
+  "$values = @();" ^
+  "foreach ($source in @($env:OLLAMA_ORIGINS, [Environment]::GetEnvironmentVariable('OLLAMA_ORIGINS', 'User'))) { if ($source) { $values += $source -split ',' } }" ^
+  "$parts = $values | ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -Unique;" ^
+  "if ($parts -notcontains $required) { $parts += $required }" ^
+  "$updated = $parts -join ',';" ^
+  "[Environment]::SetEnvironmentVariable('OLLAMA_ORIGINS', $updated, 'User');" ^
+  "[Console]::Out.Write($updated)"`) do set "UPDATED_OLLAMA_ORIGINS=%%I"
 if errorlevel 1 goto :fail
+if not defined UPDATED_OLLAMA_ORIGINS (
+  echo ERROR: Could not determine the final OLLAMA_ORIGINS value.
+  goto :fail
+)
+set "OLLAMA_ORIGINS=%UPDATED_OLLAMA_ORIGINS%"
+echo Active OLLAMA_ORIGINS for this run: %OLLAMA_ORIGINS%
 
 echo [3/6] Restarting Ollama...
 taskkill /IM "ollama app.exe" /F >nul 2>&1

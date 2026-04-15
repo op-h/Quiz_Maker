@@ -1064,6 +1064,20 @@ input[type="checkbox"]:hover {
   color: var(--accent-success);
 }
 
+body.ai-disabled #btn-toggle-ai {
+  color: var(--accent-danger);
+  border-color: rgba(255,68,68,.35);
+  background: rgba(255,68,68,.08);
+}
+body.ai-disabled #nav-ai {
+  opacity: .5;
+}
+body.ai-disabled #ai-section,
+body.ai-disabled .ai-inline-actions button,
+body.ai-disabled #btn-ai-generate-distractors {
+  filter: saturate(.6);
+}
+
 /* ─── Responsive Stats ────────────────────── */
 @media (max-width: 768px) {
   .stats-dashboard {

@@ -6,12 +6,14 @@
   let aiGeneratedQuestions = [];
 
   const AI_SETTINGS_KEY = '__quiz_maker_ai_settings';
+  const AI_FEATURE_STATE_KEY = '__quiz_maker_ai_enabled';
   const AI_DEFAULT_SETTINGS = {
     provider: 'ollama',
     endpoint: 'http://127.0.0.1:11434/api/chat',
     model: 'llama3.2',
     apiKey: ''
   };
+  let aiFeaturesEnabled = true;
   const AI_PROVIDER_PRESETS = {
     ollama: {
       endpoint: 'http://127.0.0.1:11434/api/chat',
@@ -75,10 +77,19 @@
     }
     applyAiSettingsToForm();
     bindAiSettingsInputs();
+    applyAiFeatureState(loadAiFeatureState());
     updateAiSourceFileStatus();
     renderAiGeneratedPreview();
     renderTable();
     showSection('list-section');
+
+    if ($('btn-toggle-ai')) {
+      $('btn-toggle-ai').addEventListener('click', () => {
+        const nextState = !aiFeaturesEnabled;
+        persistAiFeatureState(nextState);
+        showAlert('Instructor AI tools ' + (nextState ? 'enabled.' : 'disabled.'), true);
+      });
+    }
     
     // Attach listener to update timer stats live
     if($('enable-timer')) $('enable-timer').addEventListener('change', updateStatsDashboard);
@@ -152,6 +163,13 @@
       const typeLabel = ch.type === 'mcq' ? 'MCQ' : (ch.type === 'code' ? 'Code' : 'Text');
       const typeClass = ch.type === 'mcq' ? 'mcq' : (ch.type === 'code' ? 'code' : '');
       const hashDisplay = ch.type === 'code' ? '<i style="color:var(--text-muted)">Verifier Script Attached</i>' : `<span style="color:var(--text-muted);font-size:12px">Hashed: ${ch.hash ? ch.hash.substring(0, 8) : 'none'}...</span>`;
+      const questionText = String(ch.q || '');
+      const questionMeta = [
+        `${questionText.length} chars`,
+        ch.qAr ? 'Arabic' : '',
+        ch.hint ? 'Hint' : '',
+        ch.attachment ? 'File' : ''
+      ].filter(Boolean).map(item => `<span>${escHtml(item)}</span>`).join('');
       
       tr.innerHTML = `
         <td><input type="checkbox" class="q-select" data-id="${ch.id}" style="width:16px;height:16px;cursor:pointer;"></td>
@@ -161,7 +179,10 @@
           <span class="type-badge ${typeClass}">${typeLabel}</span>
           <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">(${ch.points || 10} pts)</span>
         </td>
-        <td style="white-space: pre-wrap; font-size:13px; line-height:1.5;">${escHtml(ch.q)}</td>
+        <td>
+          <div class="question-preview" title="${escHtml(questionText)}">${escHtml(questionText)}</div>
+          <div class="question-preview-meta">${questionMeta}</div>
+        </td>
         <td>${hashDisplay}</td>
         <td>
           <div class="actions-row">
@@ -499,6 +520,64 @@
     localStorage.setItem('__ctf_exam_builder', JSON.stringify(localChallenges));
   }
 
+  function loadAiFeatureState() {
+    try {
+      const raw = localStorage.getItem(AI_FEATURE_STATE_KEY);
+      return raw === null ? true : raw !== 'false';
+    } catch (err) {
+      return true;
+    }
+  }
+
+  function applyAiFeatureState(enabled) {
+    aiFeaturesEnabled = !!enabled;
+    document.body.classList.toggle('ai-disabled', !aiFeaturesEnabled);
+
+    const toggleBtn = $('btn-toggle-ai');
+    if (toggleBtn) {
+      toggleBtn.innerHTML = aiFeaturesEnabled
+        ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.76 5.24H19l-4.25 3.09 1.62 5.22L12 12.4 7.63 15.55l1.62-5.22L5 7.24h5.24L12 2z"></path></svg>AI Tools: On'
+        : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.76 5.24H19l-4.25 3.09 1.62 5.22L12 12.4 7.63 15.55l1.62-5.22L5 7.24h5.24L12 2z"></path><line x1="4" y1="20" x2="20" y2="4"></line></svg>AI Tools: Off';
+      toggleBtn.title = aiFeaturesEnabled ? 'Disable all instructor AI tools' : 'Enable all instructor AI tools';
+    }
+
+    const navAi = $('nav-ai');
+    if (navAi) {
+      navAi.disabled = !aiFeaturesEnabled;
+      navAi.title = aiFeaturesEnabled ? 'Open AI Studio' : 'AI tools are disabled';
+    }
+
+    const editorAiButtons = [
+      'btn-ai-improve-en',
+      'btn-ai-generate-ar',
+      'btn-ai-improve-ar',
+      'btn-ai-generate-en',
+      'btn-ai-generate-distractors'
+    ];
+    editorAiButtons.forEach(id => {
+      const el = $(id);
+      if (el) el.disabled = !aiFeaturesEnabled;
+    });
+
+    const aiSection = $('ai-section');
+    if (aiSection) {
+      aiSection.querySelectorAll('input, textarea, select, button').forEach(el => {
+        el.disabled = !aiFeaturesEnabled;
+      });
+    }
+
+    if (!aiFeaturesEnabled && aiSection && aiSection.style.display !== 'none') {
+      showSection('list-section');
+      document.querySelectorAll('.admin-sidebar-nav button').forEach(b => b.classList.remove('active'));
+      if ($('nav-list')) $('nav-list').classList.add('active');
+    }
+  }
+
+  function persistAiFeatureState(enabled) {
+    localStorage.setItem(AI_FEATURE_STATE_KEY, enabled ? 'true' : 'false');
+    applyAiFeatureState(enabled);
+  }
+
   function loadAiSettings() {
     try {
       const parsed = JSON.parse(localStorage.getItem(AI_SETTINGS_KEY) || '{}') || {};
@@ -550,6 +629,9 @@
   }
 
   function ensureAiSettings() {
+    if (!aiFeaturesEnabled) {
+      throw new Error('AI tools are disabled in the instructor dashboard. Use the AI Tools button in the sidebar to enable them.');
+    }
     const settings = getAiSettingsFromForm();
     if (!settings.endpoint) throw new Error('Set an AI endpoint in AI Studio first.');
     if (!settings.model) throw new Error('Set an AI model in AI Studio first.');
@@ -1306,12 +1388,15 @@
     const examMode = $('exam-mode').checked;
     const enableTimer = $('enable-timer').checked;
     const timerMinutes = parseInt($('exam-timer-minutes').value, 10) || 60;
+    const allowRetake = $('allow-retake') ? $('allow-retake').checked : true;
+    const rawQuestionLimit = $('offline-question-limit') ? parseInt($('offline-question-limit').value, 10) : NaN;
+    const offlineQuestionLimit = Number.isFinite(rawQuestionLimit) && rawQuestionLimit > 0 ? rawQuestionLimit : null;
 
     btn.textContent = 'Generating... (Fetching dependencies if needed)';
     btn.disabled = true;
 
     try {
-      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, selectedQ);
+      const html = await buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, selectedQ, allowRetake, offlineQuestionLimit);
       const packedHtml = packStandaloneHtml(html);
       const blob = new Blob([packedHtml], { type: 'text/html' });
       const a = document.createElement('a');
@@ -1614,7 +1699,7 @@
   }
 
   // ─── Build standalone HTML ────────────────────────────────────
-  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, challengeSet) {
+  async function buildExamHtml(examTitle, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, challengeSet, allowRetake, questionLimit) {
     const exportChallenges = challengeSet || localChallenges;
     const quizID = Math.random().toString(36).substr(2, 9);
     
@@ -1642,17 +1727,6 @@
   <title>${escHtml(examTitle)}</title>
   ${pythonEngine}
   <style>${getEmbeddedCss(lockCopyPaste, examMode, enableTimer)}</style>
-  <script>
-    (function(){
-      var id = "${quizID}";
-      if(localStorage.getItem('exam_lock_' + id)){
-        document.open();
-        document.write('<!DOCTYPE html><html><head><title>Exam Finished</title><style>body{background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;margin:0;}</style></head><body>(Exam_Finish)</body></html>');
-        document.close();
-        if(window.stop) window.stop();
-      }
-    })();
-  </script>
 </head>
 <body>
 
@@ -1683,18 +1757,6 @@
       <div style="display:flex;gap:12px;">
         <button class="primary" id="btn-confirm-yes" style="flex:1;">Yes, Submit</button>
         <button id="btn-confirm-no" style="flex:1;background:var(--panel-hover);color:var(--text-main);">Cancel</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- DELETE CONFIRM MODAL -->
-  <div id="delete-confirm-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(13,17,23,0.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;">
-    <div style="background:var(--panel-bg);border:1px solid var(--accent-danger);border-radius:var(--radius-lg);box-shadow:0 0 20px rgba(248,81,73,0.2);max-width:340px;width:90%;padding:32px;text-align:center;">
-      <h2 style="font-size:18px;margin-bottom:12px;color:#f85149;">Erase Everything?</h2>
-      <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">This will strictly delete all code and results from the browser. This action is PERMANENT and the file will break.</p>
-      <div style="display:flex;gap:12px;">
-        <button class="danger" id="btn-delete-yes" style="flex:1;">Yes, Erase</button>
-        <button id="btn-delete-no" style="flex:1;background:var(--panel-hover);color:var(--text-main);">Cancel</button>
       </div>
     </div>
   </div>
@@ -1777,7 +1839,7 @@ document.addEventListener('paste',function(e){e.preventDefault();});
 ` : ''}
 document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
 </script>
-  <script>${obfuscatePayload(getEmbeddedScript(JSON.stringify(exportChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash))}<\/script>
+  <script>${obfuscatePayload(getEmbeddedScript(JSON.stringify(exportChallenges).replace(/</g, '\\u003c'), quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, allowRetake, questionLimit))}<\/script>
 </body>
 </html>`;
   }
@@ -1877,11 +1939,13 @@ ${enableTimer ? '.timer-display { font-family: var(--font-mono); font-size: 16px
   }
 
   // ─── Embedded game script ─────────────────────────────────────
-  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash) {
+  function getEmbeddedScript(challengesData, quizID, passHash, lockCopyPaste, examMode, enableTimer, timerMinutes, teacherPassHash, allowRetake, questionLimit) {
     return `(function(CHALLENGES){
   var QUIZ_ID = "${quizID}";
   var PASS_HASH = ${passHash ? JSON.stringify(passHash) : 'null'};
   var TEACHER_PASS_HASH = ${teacherPassHash ? JSON.stringify(teacherPassHash) : 'null'};
+  var ALLOW_RETAKE = ${allowRetake ? 'true' : 'false'};
+  var QUESTION_LIMIT = ${Number.isFinite(Number(questionLimit)) && Number(questionLimit) > 0 ? Math.max(1, Number(questionLimit)) : 'null'};
   setInterval(function(){ Function("debugger")(); }, 50);
   ${lockCopyPaste ? `
   document.addEventListener('contextmenu',function(e){e.preventDefault();});
@@ -1934,6 +1998,36 @@ function formatTime(ms){var s=Math.floor((ms/1000)%60),m=Math.floor(ms/60000);re
 function showAlert(msg,ok){els.alertBox.textContent=msg;els.alertBox.className='alert-msg '+(ok?'success':'error');clearTimeout(els.alertBox._t);els.alertBox._t=setTimeout(function(){els.alertBox.className='alert-msg';},2200);}
 function updateQuestionText(){var ch=state.gameChallenges[state.currentIndex];if(!ch)return;var btn=document.getElementById('btn-translate');if(state.isArabic&&ch.qAr){els.cardText.textContent=ch.qAr;els.cardText.classList.add('rtl-text');btn.textContent='English';}else{els.cardText.textContent=ch.q;els.cardText.classList.remove('rtl-text');btn.textContent='Translate to Arabic';}}
 document.getElementById('btn-translate').addEventListener('click',function(){state.isArabic=!state.isArabic;updateQuestionText();});
+function prepareAttemptChallenges(){
+  var shuffled = shuffle(master.slice());
+  var attemptCount = QUESTION_LIMIT ? Math.max(1, Math.min(QUESTION_LIMIT, shuffled.length)) : shuffled.length;
+  var attemptPool = shuffled.slice(0, attemptCount);
+  state.maxScore = attemptPool.reduce(function(s,c){return s+(c.points||10);},0);
+  state.gameChallenges = attemptPool.map(function(c,i){return Object.assign({},c,{displayLevel:i+1,status:'open',pointsPotential:c.points||10,studentAnswer:''});});
+}
+function resetToStart(){
+  var passInput = document.getElementById('exam-pass');
+  els.nameInput.value = state.playerName || '';
+  if (passInput) passInput.value = '';
+  state.isArabic = false;
+  showScreen('start');
+  setTimeout(function(){
+    if (passInput && PASS_HASH) passInput.focus();
+    else els.nameInput.focus();
+  }, 0);
+}
+function bindStartEnter(id){
+  var field = document.getElementById(id);
+  if (!field) return;
+  field.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('btn-start').click();
+    }
+  });
+}
+bindStartEnter('player-name');
+bindStartEnter('exam-pass');
 
   function showError(msg){
     document.getElementById('error-msg').textContent=msg;
@@ -1951,9 +2045,7 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
   }
   state.attempts = (state.attempts || 0) + 1;
   state.playerName=name;document.getElementById('display-name').textContent='Student: '+name;
-  var shuffled=shuffle(master.slice());
-  state.maxScore=shuffled.reduce(function(s,c){return s+(c.points||10);},0);
-  state.gameChallenges=shuffled.map(function(c,i){return Object.assign({},c,{displayLevel:i+1,status:'open',pointsPotential:c.points||10,studentAnswer:''});});
+  prepareAttemptChallenges();
   state.totalScore=0;state.isArabic=false;state.startTime=Date.now();
   renderSidebar();
   if (state.gameChallenges.length > 0) {
@@ -2105,6 +2197,7 @@ document.getElementById('btn-translate').addEventListener('click',function(){sta
     var durationMs = ${timerMinutes} * 60 * 1000;
     _examEndTime = Date.now() + durationMs;
     var timerEl = document.getElementById('exam-timer');
+    if (timerEl) timerEl.classList.remove('danger');
     
     function updateTimer() {
       var remaining = _examEndTime - Date.now();
@@ -2417,8 +2510,9 @@ function finishTest(){
   });
   
   resHTML += '</tbody></table></div></div>';
-  resHTML += '<button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retry</button>';
-  resHTML += '<button class="danger" id="btn-delete-all" style="width:100%;margin-top:10px">Delete</button>';
+  if (ALLOW_RETAKE) {
+    resHTML += '<button class="primary" id="btn-reset" style="width:100%;margin-top:16px">Retake Exam</button>';
+  }
     
   var resultModal = document.querySelector('#result-screen .modal-box');
   
@@ -2438,8 +2532,8 @@ function finishTest(){
       if (encode(p) === TEACHER_PASS_HASH) {
         document.getElementById('teacher-auth-area').style.display = 'none';
         document.getElementById('detailed-results-container').style.display = 'block';
-        document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
-        document.getElementById('btn-delete-all').addEventListener('click', function() { document.getElementById('delete-confirm-modal').style.display = 'flex'; });
+        var resetBtn = document.getElementById('btn-reset');
+        if (resetBtn) resetBtn.addEventListener('click', resetToStart);
       } else {
         document.getElementById('teacher-unlock-error').style.display = 'block';
         document.getElementById('teacher-unlock-pass').value = '';
@@ -2453,14 +2547,18 @@ function finishTest(){
 
   } else {
     resultModal.innerHTML = '<h1>Exam Complete</h1>' + resHTML;
-    document.getElementById('btn-reset').addEventListener('click',function(){els.nameInput.value='';showScreen('start');});
-    document.getElementById('btn-delete-all').addEventListener('click', function() {
-      document.getElementById('delete-confirm-modal').style.display = 'flex';
-    });
+    var resetBtn = document.getElementById('btn-reset');
+    if (resetBtn) resetBtn.addEventListener('click', resetToStart);
   }
   
   document.getElementById('confirm-modal').style.display='none';
   showScreen('result');
+  ${enableTimer ? `
+  if (_examTimerInterval) {
+    clearInterval(_examTimerInterval);
+    _examTimerInterval = null;
+  }
+  ` : ''}
   
   // Deactivate all exam protections before exiting fullscreen
   ${examMode ? `
@@ -2484,15 +2582,6 @@ document.getElementById('btn-confirm-no').addEventListener('click',function(){
   document.getElementById('confirm-modal').style.display='none';
 });
 document.getElementById('btn-confirm-yes').addEventListener('click',finishTest);
-document.getElementById('btn-delete-no').addEventListener('click',function(){
-  document.getElementById('delete-confirm-modal').style.display='none';
-});
-document.getElementById('btn-delete-yes').addEventListener('click',function(){
-  try { localStorage.setItem('exam_lock_' + QUIZ_ID, '1'); } catch(e){}
-  document.open();
-  document.write('<!DOCTYPE html><html><head><title>Exam Finished</title><style>body{background:#0d1117;color:#c9d1d9;height:100vh;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:32px;font-weight:bold;margin:0;}</style></head><body>(Exam_Finish)</body></html>');
-  document.close();
-});
 })();`;
   }
 
