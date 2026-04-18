@@ -1820,14 +1820,90 @@
   <!-- DATA LOGIC -->
   <script>
 window.CTF_DATA = {};
-window.CTF_DATA.encodeInput = function(str) {
+window.CTF_DATA.normalizeInput = function(str) {
+  return String(str).toLowerCase().trim();
+};
+window.CTF_DATA.legacyEncodeInput = function(str) {
   var h = 0x811c9dc5;
-  var s = String(str).toLowerCase().trim();
+  var s = window.CTF_DATA.normalizeInput(str);
   for (var i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = (h * 0x01000193) >>> 0;
   }
   return h.toString(16).padStart(8, '0');
+};
+window.CTF_DATA.encodeInput = function(str) {
+  var s = window.CTF_DATA.normalizeInput(str);
+  var bytes = Array.from(new TextEncoder().encode(s));
+  var K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+  var H = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ];
+  function rotateRight(value, bits) {
+    return (value >>> bits) | (value << (32 - bits));
+  }
+  var bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while ((bytes.length % 64) !== 56) bytes.push(0);
+  var high = Math.floor(bitLen / 0x100000000);
+  var low = bitLen >>> 0;
+  bytes.push((high >>> 24) & 255, (high >>> 16) & 255, (high >>> 8) & 255, high & 255);
+  bytes.push((low >>> 24) & 255, (low >>> 16) & 255, (low >>> 8) & 255, low & 255);
+  for (var offset = 0; offset < bytes.length; offset += 64) {
+    var W = new Array(64);
+    for (var j = 0; j < 16; j++) {
+      var base = offset + (j * 4);
+      W[j] = (((bytes[base] << 24) | (bytes[base + 1] << 16) | (bytes[base + 2] << 8) | bytes[base + 3]) >>> 0);
+    }
+    for (var k = 16; k < 64; k++) {
+      var s0 = (rotateRight(W[k - 15], 7) ^ rotateRight(W[k - 15], 18) ^ (W[k - 15] >>> 3)) >>> 0;
+      var s1 = (rotateRight(W[k - 2], 17) ^ rotateRight(W[k - 2], 19) ^ (W[k - 2] >>> 10)) >>> 0;
+      W[k] = (W[k - 16] + s0 + W[k - 7] + s1) >>> 0;
+    }
+    var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h2 = H[7];
+    for (var n = 0; n < 64; n++) {
+      var S1 = (rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)) >>> 0;
+      var ch = ((e & f) ^ (~e & g)) >>> 0;
+      var temp1 = (h2 + S1 + ch + K[n] + W[n]) >>> 0;
+      var S0 = (rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)) >>> 0;
+      var maj = ((a & b) ^ (a & c) ^ (b & c)) >>> 0;
+      var temp2 = (S0 + maj) >>> 0;
+      h2 = g;
+      g = f;
+      f = e;
+      e = (d + temp1) >>> 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (temp1 + temp2) >>> 0;
+    }
+    H[0] = (H[0] + a) >>> 0;
+    H[1] = (H[1] + b) >>> 0;
+    H[2] = (H[2] + c) >>> 0;
+    H[3] = (H[3] + d) >>> 0;
+    H[4] = (H[4] + e) >>> 0;
+    H[5] = (H[5] + f) >>> 0;
+    H[6] = (H[6] + g) >>> 0;
+    H[7] = (H[7] + h2) >>> 0;
+  }
+  return H.map(function(value) { return value.toString(16).padStart(8, '0'); }).join('');
+};
+window.CTF_DATA.verifyInput = function(str, expectedHash) {
+  var hash = String(expectedHash || '').toLowerCase().trim();
+  if (!hash) return false;
+  if (/^[0-9a-f]{64}$/.test(hash)) return window.CTF_DATA.encodeInput(str) === hash;
+  if (/^[0-9a-f]{8}$/.test(hash)) return window.CTF_DATA.legacyEncodeInput(str) === hash;
+  return false;
 };
 
 setInterval(function(){ Function("debugger")(); }, 50);
@@ -1954,15 +2030,91 @@ ${enableTimer ? '.timer-display { font-family: var(--font-mono); font-size: 16px
   ` : ''}
   document.addEventListener('keydown',function(e){if(e.key==='F12'||(e.ctrlKey&&e.shiftKey&&'IJC'.includes(e.key)))e.preventDefault();});
   
-  var encode=function(str) {
+  function normalizeInput(str) {
+    return String(str).toLowerCase().trim();
+  }
+  function legacyEncode(str) {
     var h = 0x811c9dc5;
-    var s = String(str).toLowerCase().trim();
+    var s = normalizeInput(str);
     for (var i = 0; i < s.length; i++) {
         h ^= s.charCodeAt(i);
         h = (h * 0x01000193) >>> 0;
     }
     return h.toString(16).padStart(8, '0');
-  };
+  }
+  function encode(str) {
+    var s = normalizeInput(str);
+    var bytes = Array.from(new TextEncoder().encode(s));
+    var K = [
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+    var H = [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    function rotateRight(value, bits) {
+      return (value >>> bits) | (value << (32 - bits));
+    }
+    var bitLen = bytes.length * 8;
+    bytes.push(0x80);
+    while ((bytes.length % 64) !== 56) bytes.push(0);
+    var high = Math.floor(bitLen / 0x100000000);
+    var low = bitLen >>> 0;
+    bytes.push((high >>> 24) & 255, (high >>> 16) & 255, (high >>> 8) & 255, high & 255);
+    bytes.push((low >>> 24) & 255, (low >>> 16) & 255, (low >>> 8) & 255, low & 255);
+    for (var offset = 0; offset < bytes.length; offset += 64) {
+      var W = new Array(64);
+      for (var j = 0; j < 16; j++) {
+        var base = offset + (j * 4);
+        W[j] = (((bytes[base] << 24) | (bytes[base + 1] << 16) | (bytes[base + 2] << 8) | bytes[base + 3]) >>> 0);
+      }
+      for (var k = 16; k < 64; k++) {
+        var s0 = (rotateRight(W[k - 15], 7) ^ rotateRight(W[k - 15], 18) ^ (W[k - 15] >>> 3)) >>> 0;
+        var s1 = (rotateRight(W[k - 2], 17) ^ rotateRight(W[k - 2], 19) ^ (W[k - 2] >>> 10)) >>> 0;
+        W[k] = (W[k - 16] + s0 + W[k - 7] + s1) >>> 0;
+      }
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h2 = H[7];
+      for (var n = 0; n < 64; n++) {
+        var S1 = (rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)) >>> 0;
+        var ch = ((e & f) ^ (~e & g)) >>> 0;
+        var temp1 = (h2 + S1 + ch + K[n] + W[n]) >>> 0;
+        var S0 = (rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)) >>> 0;
+        var maj = ((a & b) ^ (a & c) ^ (b & c)) >>> 0;
+        var temp2 = (S0 + maj) >>> 0;
+        h2 = g;
+        g = f;
+        f = e;
+        e = (d + temp1) >>> 0;
+        d = c;
+        c = b;
+        b = a;
+        a = (temp1 + temp2) >>> 0;
+      }
+      H[0] = (H[0] + a) >>> 0;
+      H[1] = (H[1] + b) >>> 0;
+      H[2] = (H[2] + c) >>> 0;
+      H[3] = (H[3] + d) >>> 0;
+      H[4] = (H[4] + e) >>> 0;
+      H[5] = (H[5] + f) >>> 0;
+      H[6] = (H[6] + g) >>> 0;
+      H[7] = (H[7] + h2) >>> 0;
+    }
+    return H.map(function(value) { return value.toString(16).padStart(8, '0'); }).join('');
+  }
+  function verifyHash(str, expectedHash) {
+    var hash = String(expectedHash || '').toLowerCase().trim();
+    if (!hash) return false;
+    if (/^[0-9a-f]{64}$/.test(hash)) return encode(str) === hash;
+    if (/^[0-9a-f]{8}$/.test(hash)) return legacyEncode(str) === hash;
+    return false;
+  }
   
   var master=${challengesData};
   master.forEach(function(c) { Object.freeze(c); });
@@ -2041,7 +2193,7 @@ bindStartEnter('exam-pass');
   var name=els.nameInput.value.trim();if(!name)return showError('Please enter your name to begin.');
   if(PASS_HASH){
     var pInput=document.getElementById('exam-pass');
-    if(!pInput || encode(pInput.value)!==PASS_HASH) return showError('Incorrect exam password.');
+    if(!pInput || !verifyHash(pInput.value, PASS_HASH)) return showError('Incorrect exam password.');
   }
   state.attempts = (state.attempts || 0) + 1;
   state.playerName=name;document.getElementById('display-name').textContent='Student: '+name;
@@ -2408,7 +2560,7 @@ document.getElementById('btn-submit').addEventListener('click',function(){
   } else {
     ans = document.getElementById('flag-input').value;
     ch.studentAnswer = ans;
-    if(encode(ans)===ch.hash) {
+    if(verifyHash(ans, ch.hash)) {
       state.totalScore+=ch.pointsPotential;
       ch.status='solved';
       showAlert('Answer accepted.',true);
@@ -2429,7 +2581,7 @@ function finishTest(){
   state.totalScore = 0;
   state.gameChallenges.forEach(function(ch){
     if (ch.type === 'mcq' && ch.status === 'answered') {
-      if (encode(ch.studentAnswer) === ch.hash) {
+      if (verifyHash(ch.studentAnswer, ch.hash)) {
         ch.status = 'solved';
         state.totalScore += ch.pointsPotential;
       } else {
@@ -2529,7 +2681,7 @@ function finishTest(){
       
     document.getElementById('btn-unlock-results').addEventListener('click', function() {
       var p = document.getElementById('teacher-unlock-pass').value;
-      if (encode(p) === TEACHER_PASS_HASH) {
+      if (verifyHash(p, TEACHER_PASS_HASH)) {
         document.getElementById('teacher-auth-area').style.display = 'none';
         document.getElementById('detailed-results-container').style.display = 'block';
         var resetBtn = document.getElementById('btn-reset');
