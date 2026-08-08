@@ -2,19 +2,18 @@
 
 #  Quiz Maker
 
-### Secure Exam Builder & Live Online Portal
+### Secure Offline Exam Builder
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-op--h.github.io-58a6ff?style=for-the-badge&logo=github&logoColor=white)](https://op-h.github.io/Quiz_Maker/)
-[![Firebase](https://img.shields.io/badge/Firebase-Realtime_DB-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com/)
 [![License](https://img.shields.io/badge/License-MIT-39d353?style=for-the-badge)](LICENSE)
 [![JavaScript](https://img.shields.io/badge/Vanilla-JavaScript-e3b341?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
 <br>
 
 <p>
-  <strong>Build exams in a premium admin dashboard. Export as offline HTML or host live sessions with real-time leaderboards.</strong>
+  <strong>Build exams in a premium admin dashboard and export a single self-contained offline HTML file.</strong>
   <br>
-  No server. No accounts. No backend. Everything runs in the browser.
+  No server. No accounts. No backend. The exported exam runs fully offline in any browser.
 </p>
 
 <br>
@@ -60,13 +59,13 @@
 <tr>
 <td width="50%">
 
-###  Live Online Exams
-- Real-time Firebase-powered sessions
-- Live leaderboard with scores & completion times
-- 6-character exam codes for students to join
-- Auto-submit on timer expiry
-- Teacher dashboard with live student tracking
-- Graceful exam termination with data preservation
+###  Offline-First Exams
+- Export one standalone `.html` exam file
+- Runs with no server, no internet, no install
+- Optional random question subset per attempt
+- Retake support with a fresh shuffle
+- Answers stored as hashes, never plain text
+- Built-in timer with auto-submit
 
 </td>
 <td width="50%">
@@ -119,27 +118,22 @@
 
 ```
 1.  Open AI Studio in the sidebar
-2.  Enter your Responses API endpoint, model, and token (or your own proxy URL)
-3.  Paste notes or upload a PDF/TXT/MD file
-4.  Generate questions, review the preview, then import them into the question bank
-5.  Use the editor AI buttons to improve English/Arabic wording or generate MCQ distractors
+2.  Pick a provider: Ollama (free local), OpenRouter (one sign-in for GPT/Claude/Gemini),
+    OpenAI, or any OpenAI-compatible endpoint
+3.  Either paste an API key, or click "Sign in with OpenRouter" to fetch one automatically
+4.  Paste notes or upload a PDF/TXT/MD file
+5.  Generate questions, review the preview, then import them into the question bank
+6.  Use the editor AI buttons to improve English/Arabic wording or generate MCQ distractors
 ```
 
-### Hosting a Live Exam (Online)
-
-```
-1.  Set up Firebase (see Configuration below)
-2.  Add your questions in the builder
-3.  Click "Host Live Exam" → generates a 6-character exam code
-4.  Share the code — students join at take.html
-5.  Monitor live progress on the teacher dashboard
-6.  Click "End Exam" when done → results are preserved
-```
+> "Sign in with OpenRouter" uses a browser OAuth (PKCE) flow, so it only works when the
+> builder is served over http/https (e.g. GitHub Pages or `py -m http.server`), not from a
+> `file:///` page.
 
 ### Taking an Exam (Student)
 
 ```
-1.  Open the .html file (offline) or navigate to take.html (online)
+1.  Open the exported .html file (works fully offline)
 2.  Enter your name and exam password (if required)
 3.  Answer questions — use the sidebar to navigate
 4.  Click "Submit All Answers" when finished
@@ -153,39 +147,11 @@
 
 ## Configuration
 
-### Firebase Setup (for Live Exams only)
-
-<details>
-<summary><strong>Click to expand Firebase setup instructions</strong></summary>
-
-<br>
-
-1. Go to [console.firebase.google.com](https://console.firebase.google.com)
-2. Create a free project
-3. Add a **Web App** to get your config keys
-4. Create a **Realtime Database** and set rules to allow read/write
-5. Copy your config into `js/firebase-config.js`:
-
-```javascript
-const FIREBASE_CONFIG = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  databaseURL: "https://your-project-default-rtdb.firebasedatabase.app",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id"
-};
-```
-
-> **Note:** Firebase web API keys are designed to be client-side. Secure your data using [Firebase Security Rules](https://firebase.google.com/docs/database/security), not by hiding the config.
-
-</details>
-
 ### AI Setup (for AI Studio)
 
 - The builder supports:
   `Ollama (free local)` for notes-to-quiz, distractors, and language improvement
+  `OpenRouter` — one sign-in (OAuth) to reach GPT, Claude, Gemini, Llama and more
   `OpenAI Responses` for hosted generation plus direct PDF file input
   `Custom OpenAI-compatible` endpoints/proxies
 - For local/personal use, `Ollama` is the easiest free option. Run Ollama locally, pull a model such as `llama3.2`, `qwen2.5:14b`, or `gpt-oss:20b`, then select `Ollama (Free Local)` in `AI Studio`.
@@ -206,13 +172,9 @@ const FIREBASE_CONFIG = {
 Quiz_Maker/
 │
 ├── index.html              → Admin exam builder dashboard
-├── take.html               → Live online exam student portal
-├── style.css               → Shared glassmorphism dark/light theme
+├── style.css               → Glassmorphism dark/light theme
 ├── admin.js                → Builder logic + offline exam generation
 ├── challenges.js           → Shared question encoding utilities
-│
-├── js/
-│   └── firebase-config.js  → Firebase credentials (your config)
 │
 └── .github/
     └── workflows/
@@ -250,7 +212,6 @@ Quiz_Maker/
 | ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white) | Structure |
 | ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white) | Glassmorphism theme |
 | ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black) | Core logic |
-| ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat-square&logo=firebase&logoColor=black) | Live exam sync |
 | ![Skulpt](https://img.shields.io/badge/Skulpt-3776AB?style=flat-square&logo=python&logoColor=white) | Python execution |
 
 </div>

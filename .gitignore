@@ -1,1 +1,9 @@
-# Nothing to ignore for now
+# Real Firebase config holds a live project/DB URL — commit only firebase-config.example.js.
+js/firebase-config.js
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*~
+.idea/
+.vscode/

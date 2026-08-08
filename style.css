@@ -27,11 +27,6 @@
 
   /* HTB green hint — for terminal flavor */
   --htb-green:  #9fef00;
-  --htb-green2: #a4e854;
-
-  --accent-blue:  #58a6ff;
-  --accent-green: #39d353;
-  --accent-red:   #ff4444;
 
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
@@ -49,7 +44,6 @@
   --input-bg:       rgba(6, 10, 15, 0.6);
   --sidebar-bg:     rgba(10, 14, 20, 0.4);
   --workspace-bg:   transparent;
-  --level-btn-hover: rgba(88,166,255,.08);
 }
 
 /* ─── LIGHT theme override ──────────────────── */
@@ -74,11 +68,6 @@ body.light {
   --accent-warning-hover: #7d5400;
 
   --htb-green:  #2da44e;
-  --htb-green2: #1a7f37;
-
-  --accent-blue:  #0969da;
-  --accent-green: #1a7f37;
-  --accent-red:   #cf222e;
 
   --shadow-sm:  0 1px 3px rgba(0,0,0,.12);
   --shadow-md:  0 4px 12px rgba(0,0,0,.1);
@@ -89,7 +78,6 @@ body.light {
   --input-bg:       #ffffff;
   --sidebar-bg:     #f5f7fa;
   --workspace-bg:   #eaeef2;
-  --level-btn-hover: rgba(31,35,40,.06);
 }
 
 /* ─── Reset ─────────────────────────────────── */
@@ -203,39 +191,6 @@ button.theme-toggle:hover {
   box-shadow: none;
 }
 
-/* ─── Inputs ─────────────────────────────────── */
-.input-group { margin-bottom: 18px; }
-
-.input-group label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 11px 14px;
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  color: var(--text-main);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  transition: all .2s ease;
-}
-
-.input-group input:focus {
-  border-color: var(--accent-primary);
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(88,166,255,.15), var(--glow-blue);
-}
-
-.input-group input::placeholder { color: var(--border-color); font-family: var(--font-mono); }
-
 /* ─── Screens ──────────────────────────────── */
 .screen {
   display: none;
@@ -256,399 +211,15 @@ button.theme-toggle:hover {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ─── Modal (Start / Result) ───────────────── */
-.modal-box {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 44px;
-  width: 100%;
-  max-width: 480px;
-  box-shadow: var(--shadow-lg), var(--glow-blue);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Corner accent lines — HTB style */
-.modal-box::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 60px; height: 2px;
-  background: linear-gradient(90deg, var(--accent-primary), transparent);
-}
-.modal-box::after {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 2px; height: 60px;
-  background: linear-gradient(180deg, var(--accent-primary), transparent);
-}
-
-.modal-box h1 {
-  color: var(--accent-primary);
-  font-size: 24px;
-  font-family: var(--font-mono);
-  margin-bottom: 10px;
-  letter-spacing: -0.5px;
-}
-
-.modal-box > p {
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.6;
-  margin-bottom: 28px;
-}
-
-/* ─── Top Bar ──────────────────────────────── */
-.top-bar {
-  width: 100%;
-  height: 54px;
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 22px;
-  flex-shrink: 0;
-  z-index: 10;
-}
-
-.brand {
-  color: var(--accent-primary);
-  font-weight: 700;
-  font-size: 14px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.player-info { color: var(--text-muted); font-size: 13px; font-family: var(--font-mono); }
-
-/* ─── Game layout ─────────────────────────── */
-#game-screen {
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-}
-
-.game-layout { display: flex; flex: 1; width: 100%; min-height: 100vh; }
-
-/* ─── Sidebar (LEFT) ──────────────────────── */
-.sidebar {
-  width: 240px;
-  min-width: 240px;
-  background: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
-  overflow-y: auto;
-  flex-shrink: 0;
-  padding: 16px 0 12px;
-  order: -1;
-}
-
-/* Sidebar header */
-.sidebar::before {
-  content: 'QUESTIONS';
-  display: block;
-  padding: 0 20px 12px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 8px;
-}
-
-.level-btn {
-  width: 100%;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 0;
-  border-left: 2px solid transparent;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  font-family: var(--font-mono);
-  text-align: left;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: none;
-  transition: all .15s ease;
-  letter-spacing: 0.2px;
-  text-transform: none;
-}
-
-.level-btn:hover {
-  background: var(--level-btn-hover);
-  color: var(--text-bright);
-  border-left-color: var(--border-glow);
-  transform: none;
-  box-shadow: none;
-}
-
-.level-btn .icon {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--border-color);
-  flex-shrink: 0;
-  transition: background .2s, box-shadow .2s;
-}
-
-.level-btn.locked { color: var(--border-color); cursor: default; }
-.level-btn.unlocked { color: var(--text-main); }
-.level-btn.unlocked .icon { background: var(--text-muted); }
-
-.level-btn.active-level {
-  border-left-color: var(--accent-primary);
-  background: rgba(88,166,255,.07);
-  color: var(--accent-primary);
-  font-weight: 600;
-}
-.level-btn.active-level .icon {
-  background: var(--accent-primary);
-  box-shadow: 0 0 8px rgba(88,166,255,.7);
-}
-
-.level-btn.solved { color: var(--accent-success); }
-.level-btn.solved .icon { background: var(--accent-success); box-shadow: 0 0 8px rgba(57,211,83,.6); }
-.level-btn.solved.active-level { border-left-color: var(--accent-success); background: rgba(57,211,83,.07); }
-
-.level-btn.skipped { color: var(--accent-warning); }
-.level-btn.skipped .icon { background: var(--accent-warning); box-shadow: 0 0 6px rgba(227,179,65,.4); }
-.level-btn.skipped.active-level { border-left-color: var(--accent-warning); background: rgba(227,179,65,.06); }
-
-/* ─── Workspace ───────────────────────────── */
-.workspace {
-  flex: 1;
-  padding: 40px 32px;
-  overflow-y: auto;
-  scroll-behavior: smooth;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: var(--workspace-bg);
-}
-
-/* ─── Challenge card ──────────────────────── */
-.challenge-card {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  width: 100%;
-  max-width: 800px;
-  padding: 40px;
-  position: relative;
-  box-shadow: var(--shadow-md);
-  transition: border-color .25s ease, box-shadow .25s ease;
-  overflow: hidden;
-}
-
-/* Top-left corner accent */
-.challenge-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 50px; height: 2px;
-  background: linear-gradient(90deg, var(--accent-primary), transparent);
-}
-
-.challenge-card:hover {
-  border-color: var(--border-glow);
-  box-shadow: var(--shadow-lg), var(--glow-blue);
-}
-
-.topic-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(88,166,255,.07);
-  color: var(--accent-primary);
-  padding: 5px 14px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  margin-bottom: 22px;
-  border: 1px solid rgba(88,166,255,.18);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-family: var(--font-mono);
-}
-
-.topic-badge::before {
-  content: '▣';
-  font-size: 10px;
-  opacity: 0.7;
-}
-
-.challenge-text {
-  font-size: 15px;
-  line-height: 1.8;
-  color: var(--text-main);
-  margin-bottom: 28px;
-  white-space: pre-wrap;
-}
-
-.format-req {
-  background: rgba(227,179,65,.07);
-  border-left: 2px solid var(--accent-warning);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  padding: 12px 16px;
-  color: var(--accent-warning);
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 28px;
-  font-family: var(--font-mono);
-}
-
-/* ─── Flag/Answer input ────────────────────── */
-.flag-input-wrapper {
-  display: flex;
-  align-items: center;
-  background: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 6px 18px;
-  margin-bottom: 28px;
-  transition: all .2s ease;
-  position: relative;
-}
-
-.flag-input-wrapper::before {
-  content: '>';
-  color: var(--accent-success);
-  font-family: var(--font-mono);
-  font-size: 16px;
-  font-weight: 700;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.flag-input-wrapper:hover { border-color: var(--border-glow); }
-
-.flag-input-wrapper:focus-within {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(88,166,255,.12), var(--glow-blue);
-}
-
-.flag-input-wrapper:focus-within::before { color: var(--accent-primary); }
-
-.flag-input-wrapper input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--htb-green);
-  font-family: var(--font-mono);
-  font-size: 16px;
-  font-weight: 500;
-  padding: 12px 0;
-  outline: none;
-  box-shadow: none;
-  letter-spacing: 0.5px;
-}
-
-.flag-input-wrapper input::placeholder { color: var(--border-color); font-family: var(--font-mono); }
-
 /* ─── Action buttons ─────────────────────── */
 .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 
-/* ─── Alert messages ─────────────────────── */
-.alert-msg {
-  margin-top: 18px;
-  padding: 12px 20px;
-  border-radius: var(--radius-md);
-  display: none;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  animation: slideIn 0.2s ease;
-  font-family: var(--font-mono);
-}
-
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.alert-msg.error {
-  display: block;
-  color: var(--accent-danger);
-  background: rgba(255,68,68,.08);
-  border: 1px solid rgba(255,68,68,.25);
-}
-
-.alert-msg.success {
-  display: block;
-  color: var(--accent-success);
-  background: rgba(57,211,83,.08);
-  border: 1px solid rgba(57,211,83,.25);
-}
-
-/* ─── Translate button ─────────────────────── */
-.translate-btn {
-  position: absolute;
-  top: 28px;
-  right: 28px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-muted);
-  padding: 5px 12px;
-  font-size: 11px;
-  border-radius: 4px;
-  text-transform: none;
-}
-
-.translate-btn:hover {
-  color: var(--text-bright);
-  border-color: var(--border-glow);
-  transform: none;
-  box-shadow: none;
-}
-
-.rtl-text {
-  direction: rtl;
-  text-align: right;
-  font-size: 17px;
-  line-height: 1.9;
-}
-
-/* ─── Results stats ───────────────────────── */
-.stats-table {
-  width: 100%;
-  margin: 26px 0;
-  border-collapse: collapse;
-  font-family: var(--font-mono);
-}
-
-.stats-table th, .stats-table td {
-  padding: 13px 10px;
-  border-bottom: 1px solid var(--border-color);
-  text-align: left;
-  font-size: 13px;
-}
-
-.stats-table th { color: var(--text-muted); font-weight: 500; width: 45%; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-.stats-table td { color: var(--text-bright); font-weight: 600; }
-.stats-table tr:last-child th, .stats-table tr:last-child td { border-bottom: none; }
-
 /* ─── Responsive ──────────────────────────── */
 @media (max-width: 768px) {
-  .game-layout { flex-direction: column; }
-  .sidebar { width: 100%; height: 160px; border-right: none; border-bottom: 1px solid var(--border-color); order: 0; }
-  .workspace { padding: 16px; }
-  .challenge-card { padding: 22px; }
-  .translate-btn { top: 16px; right: 16px; }
   .action-buttons button { flex: 1; }
 }
 /* Glassmorphism overrides */
-.admin-card, .modal-box, .challenge-card, .top-bar, .sidebar, .admin-sidebar { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.admin-card, .admin-sidebar { backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 
 /* ═══════════════════════════════════════════════
    THM/HTB-STYLE ENHANCEMENTS & FIXES
@@ -852,25 +423,6 @@ button.primary::before, button.success::before {
 }
 button.primary:hover::before, button.success:hover::before {
   opacity: 1;
-}
-
-/* ─── Live Status Indicator ───────────────── */
-.live-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .8px;
-}
-.live-indicator .dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--accent-success);
-  animation: htb-pulse 1.5s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(57,211,83,.5);
 }
 
 /* ─── Workspace Animated Scan Line ────────── */
@@ -1145,7 +697,7 @@ body.ai-disabled #btn-ai-generate-distractors {
 .htb-modal-overlay {
   position: fixed;
   top: 0; left: 0;
-  width: 100vw; height: 100vh;
+  width: 100%; height: 100%; /* 100vw includes the scrollbar → horizontal scroll; % of the viewport is safe (DoD #4) */
   background: rgba(0,0,0,0.8);
   backdrop-filter: blur(4px);
   z-index: 9999;
@@ -1206,4 +758,423 @@ body.ai-disabled #btn-ai-generate-distractors {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════
+   PROFESSIONAL POLISH + FULL RESPONSIVENESS
+   Keeps the HTB/cyber theme; adds fluid sizing,
+   accessible focus rings, and reduced-motion.
+   ═══════════════════════════════════════════════ */
+html { scroll-behavior: smooth; }
+img, svg { max-width: 100%; }
+
+/* Consistent keyboard-focus ring across controls */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Fluid stat value size */
+.stat-card .stat-value { font-size: clamp(22px, 3.4vw, 28px); }
+
+/* Cleaner mobile top-nav (no visible horizontal scrollbar) */
+@media (max-width: 900px) {
+  .admin-sidebar-nav { scrollbar-width: none; }
+  .admin-sidebar-nav::-webkit-scrollbar { height: 0; }
+}
+
+@media (max-width: 600px) {
+  .stats-dashboard { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .htb-modal-box { padding: 24px 20px; }
+  .admin-card-header { gap: 10px; }
+}
+
+@media (max-width: 400px) {
+  .stats-dashboard { grid-template-columns: 1fr; }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DESIGN REFRESH v3 — "Cyber-Pro"
+   A product-grade dark UI that keeps the HTB/terminal
+   signature (mono labels, lime accent, faint grid) but adds a
+   calmer palette, softer depth, rounder geometry and cleaner
+   spacing. Appended last so tokens + polish win the cascade.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --bg-color:     #0a0c12;
+  --panel-bg:     rgba(19, 24, 33, 0.72);
+  --panel-hover:  rgba(30, 37, 51, 0.85);
+  --border-color: rgba(150, 168, 194, 0.14);
+  --border-glow:  #3f7fe0;
+  --text-main:    #c6cfda;
+  --text-muted:   #7a8592;
+  --text-bright:  #f2f6fb;
+  --accent-primary:       #4d9dff;
+  --accent-primary-hover: #6fb0ff;
+  --accent-success:       #3fd06a;
+  --accent-success-hover: #34b85c;
+  --accent-danger:        #ff5b6e;
+  --accent-danger-hover:  #e94258;
+  --accent-warning:       #f0b429;
+  --accent-warning-hover: #d69a1e;
+  --htb-green:  #9fef00;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 8px 28px rgba(0,0,0,.42);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,.5);
+  --glow-blue: 0 0 0 1px rgba(77,157,255,.14);
+  --glow-green: 0 0 0 1px rgba(63,208,106,.14);
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --input-bg:   rgba(9, 13, 19, 0.72);
+  --sidebar-bg: rgba(12, 16, 23, 0.6);
+}
+body.light {
+  --bg-color:     #eef1f6;
+  --panel-bg:     #ffffff;
+  --panel-hover:  #f2f5f9;
+  --border-color: rgba(20, 30, 50, 0.12);
+  --border-glow:  #5b8def;
+  --text-main:    #2b333d;
+  --text-muted:   #5c6874;
+  --text-bright:  #131820;
+  --accent-primary:       #2f6fe0;
+  --accent-primary-hover: #245bc0;
+  --accent-success:       #1f9d4d;
+  --accent-danger:        #d83a4e;
+  --accent-warning:       #b5820c;
+  --htb-green:  #2da44e;
+  --input-bg:   #ffffff;
+  --sidebar-bg: #f5f7fb;
+  --workspace-bg: #e9edf3;
+  --shadow-md: 0 8px 24px rgba(30,45,80,.1);
+  --shadow-lg: 0 20px 48px rgba(30,45,80,.14);
+  --glow-blue: none;
+  --glow-green: none;
+}
+
+/* Fainter, larger grid for a calmer canvas */
+body {
+  background-image:
+    linear-gradient(rgba(120,140,175,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120,140,175,.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+
+/* ── Buttons ── */
+button { border-radius: var(--radius-sm); font-weight: 600; letter-spacing: .2px; }
+button:hover { transform: translateY(-1px); }
+button.primary {
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-primary-hover));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(77,157,255,.28);
+}
+button.primary:hover {
+  background: linear-gradient(180deg, var(--accent-primary-hover), var(--accent-primary));
+  box-shadow: 0 6px 20px rgba(77,157,255,.42);
+}
+button.success {
+  background: linear-gradient(180deg, var(--accent-success), var(--accent-success-hover));
+  border-color: transparent;
+}
+
+/* ── Cards & surfaces ── */
+.admin-card, .stat-card, .htb-modal-box, .ai-preview-card {
+  border-radius: var(--radius-lg);
+}
+.admin-card { box-shadow: var(--shadow-md); }
+.admin-card::before { height: 3px; width: 46px; border-radius: 0 2px 2px 0; }
+.admin-card:hover { border-color: rgba(150,168,194,.28); }
+
+/* Calmer stat cards (the constant scan-line felt busy) */
+.stat-card::before { opacity: .45; animation-duration: 7s; }
+.stat-card:hover { border-color: var(--accent-primary); box-shadow: 0 0 0 1px rgba(77,157,255,.25), var(--shadow-md); }
+.stat-card .stat-value { letter-spacing: -.5px; }
+
+/* ── Sidebar ── */
+.admin-sidebar-header { letter-spacing: 1.5px; }
+.admin-sidebar-nav button { border-radius: var(--radius-sm); border-left-width: 0; }
+.admin-sidebar-nav button.active { box-shadow: inset 0 0 0 1px rgba(77,157,255,.25); }
+
+/* ── Inputs ── */
+.form-group input, .form-group textarea, .form-group select {
+  border-radius: var(--radius-sm);
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+  box-shadow: 0 0 0 3px rgba(77,157,255,.16);
+}
+
+/* ── Badges / tables: calmer ── */
+.type-badge.mcq { animation: none; }
+.admin-table th { letter-spacing: .8px; }
+
+/* ═══ Long-text safety (never let a big word/answer break layout) ═══ */
+.question-preview,
+.ai-preview-text,
+.ai-preview-option,
+.htb-modal-body,
+.admin-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.form-group, .form-group input, .form-group textarea, .form-group select { min-width: 0; }
+.stat-card { min-width: 0; }
+
+/* ═══════════════════════════════════════════════════════════
+   BUILDER FRIENDLINESS PASS — additive polish only (PRISM)
+   Appended last so it wins the cascade. No token/theme edits,
+   no new fonts/imports. Scope: the maker dashboard.
+   NOTE: index.html's inline <style> loads AFTER this file, so
+   form rules below use higher specificity (.admin-card …) to
+   reliably win. Motion safety is covered by the global
+   prefers-reduced-motion block above (kills transitions/anims).
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1 · Button hierarchy, affordance & pressed feedback ── */
+/* Every button settles on press so clicks feel responsive. */
+button:active { transform: translateY(0); }
+button.primary:active,
+button.success:active,
+button.danger:active,
+button.warning:active { transform: translateY(0); filter: brightness(.95); }
+
+/* Destructive actions stay unmistakably dangerous at rest and on hover. */
+button.danger { box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-danger) 30%, transparent); }
+button.danger:hover { box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-danger) 45%, transparent); }
+
+/* Preview Exam → promoted into the primary tier as a blue call-to-action,
+   kept a step below the green Export button so the hierarchy reads clearly. */
+#btn-preview-quiz {
+  color: var(--accent-primary);
+  border-color: color-mix(in srgb, var(--accent-primary) 55%, var(--border-color));
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  font-weight: 700;
+}
+#btn-preview-quiz:hover {
+  color: #fff;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-primary) 35%, transparent);
+}
+
+/* Stronger, theme-aware keyboard focus ring on every control (both themes). */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-primary) 32%, transparent);
+}
+
+/* ── 2 · Friendlier empty states ── */
+/* Question-bank empty cell: an inviting, muted "+" badge above the copy. */
+#challenges-tbody td[colspan]::before {
+  content: '+';
+  display: grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 56px;
+  margin: 8px auto 0;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, transparent);
+  color: var(--accent-primary);
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* AI preview placeholder: comfier padding + a gentler, more readable tone. */
+.ai-preview-empty {
+  padding: 32px 28px;
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--text-muted) 45%, var(--text-main));
+  background: color-mix(in srgb, var(--accent-primary) 4%, transparent);
+}
+.ai-preview-empty::before {
+  content: '\2726'; /* four-point sparkle — matches AI Studio motif */
+  display: block;
+  font-size: 22px;
+  color: var(--accent-primary);
+  opacity: .85;
+  margin-bottom: 10px;
+}
+
+/* ── 3 · Form rhythm & readability ── */
+/* Brighter labels + help text so the dense form reads calmly in both themes. */
+.admin-card .form-group label {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--text-muted) 50%, var(--text-main));
+}
+.admin-card .form-group small {
+  font-size: 12px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text-muted) 40%, var(--text-main));
+}
+.admin-card .form-group input,
+.admin-card .form-group textarea,
+.admin-card .form-group select { line-height: 1.5; }
+.admin-card .form-row { margin-bottom: 20px; }
+
+/* ── 4 · Inputs: clearer hover + focus ── */
+.admin-card .form-group input:hover,
+.admin-card .form-group textarea:hover,
+.admin-card .form-group select:hover { border-color: var(--accent-primary); }
+
+.admin-card .form-group input:focus,
+.admin-card .form-group textarea:focus,
+.admin-card .form-group select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+}
+/* Beat index.html's `.form-group input:focus { outline:none }` for keyboard users. */
+.admin-card .form-group input:focus-visible,
+.admin-card .form-group textarea:focus-visible,
+.admin-card .form-group select:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+}
+
+/* Comfortable ≥24px checkbox hit targets (WCAG 2.2 target size, 2.5.8). */
+input[type="checkbox"] {
+  width: 24px !important;
+  height: 24px !important;
+}
+input[type="checkbox"]:checked::after { font-size: 15px; }
+/* Checkmark must contrast with the accent fill: black works on the light-blue
+   dark-theme accent, but the light theme's deep-blue accent needs a white tick. */
+body.light input[type="checkbox"]:checked::after { color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════
+   SOLIDITY & COHESION PASS (PRISM) — additive refinement only.
+   Goal: one consistent depth / hover / badge language across the
+   builder in BOTH themes. No token, font, or import changes.
+   Higher specificity (.admin-workspace …, .admin-card …) is used
+   where index.html's later inline <style> would otherwise win.
+   All motion stays reduced-motion-safe via the global guard above.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1 · Cohesive card depth ──────────────────────────────────
+   Every builder surface now shares the v3 "hairline ring + soft
+   shadow" hover, keyed off the live accent token so no stale
+   hard-coded blue leaks through and both themes stay in sync. */
+.admin-workspace .admin-card:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-color));
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+.ai-preview-card:hover {
+  border-color: color-mix(in srgb, var(--accent-primary) 42%, var(--border-color));
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 20%, transparent);
+}
+
+/* Consistent corner accent stripe on cards (restores the v3 intent
+   that index.html's older inline .admin-card::before was overriding
+   back to a thinner, square-ended 40px bar). */
+.admin-workspace .admin-card::before {
+  width: 46px;
+  height: 3px;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── 2 · Pills, badges & tints as one token-driven system ─────
+   The old rgba(88,166,255,…) tints predate the v3 accent and read
+   slightly off, especially in light mode. Recompute every builder
+   pill/tint from the live token so hover states, count pills and
+   type badges all match the rest of the UI in both themes. */
+.admin-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent) !important;
+}
+.admin-sidebar-nav button .nav-count {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 28%, transparent);
+  color: var(--accent-primary);
+}
+.admin-card .question-preview-meta span {
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+}
+.admin-card .type-badge.mcq {
+  background: color-mix(in srgb, var(--accent-primary) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 26%, transparent);
+  color: var(--accent-primary);
+}
+.admin-card .type-badge.code {
+  background: color-mix(in srgb, var(--accent-warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent-warning) 26%, transparent);
+  color: var(--accent-warning);
+}
+.ai-preview-badge {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+  border-color: color-mix(in srgb, var(--accent-primary) 24%, transparent);
+  color: var(--accent-primary);
+}
+
+/* ── 3 · State clarity: disabled controls read as disabled ────
+   Buttons already dim on :disabled; extend the same affordance to
+   inputs/selects and any aria-disabled control for a consistent
+   form language. */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+[aria-disabled="true"] {
+  opacity: .5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── 4 · MCQ / option rows: tidy density + comfortable targets ─
+   Stop long option text from squeezing the row, grow the
+   correct-answer radio toward the WCAG 2.2 target size, and let the
+   row wrap cleanly on narrow screens instead of clipping controls. */
+.mcq-option-row { min-width: 0; flex-wrap: wrap; row-gap: 8px; }
+.mcq-option-row input[type="text"] { min-width: 0; }
+#mcq-options-list input[type="radio"] {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.mcq-remove-btn {
+  min-width: 34px;
+  min-height: 34px;
+  justify-content: center;
+}
+
+/* ── 5 · Small-screen solidity (320–768px) ───────────────────
+   No cramped controls, no overflow; primary/secondary actions stay
+   full-width and tappable rather than shrinking below target. */
+@media (max-width: 768px) {
+  /* Question-bank header tools wrap into full, evenly-sized rows. */
+  #list-section .admin-card-header > div { width: 100%; }
+  #list-section .admin-card-header > div button { flex: 1 1 auto; justify-content: center; }
+}
+@media (max-width: 480px) {
+  #editor-section .action-buttons,
+  #ai-section .action-buttons { flex-direction: column; }
+  #editor-section .action-buttons button,
+  #ai-section .action-buttons button { width: 100%; flex: none; justify-content: center; }
 }

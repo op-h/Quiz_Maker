@@ -4,7 +4,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="data:,">
   <title>Exam Builder</title>
+  <meta name="description" content="Build exams in a premium admin dashboard and export a single self-contained offline HTML file.">
+  <meta name="theme-color" content="#0d1117">
+  <meta property="og:title" content="Exam Builder">
+  <meta property="og:description" content="Build exams in a premium admin dashboard and export a single self-contained offline HTML file.">
+  <meta property="og:type" content="website">
   <link rel="stylesheet" href="style.css">
   <style>
     body { overflow: auto; background: var(--bg-color); }
@@ -13,9 +20,12 @@
     #dashboard-screen {
       display: flex;
       flex-direction: row;
+      align-items: stretch; /* override .screen's align-items:center so panels fill width/height */
+      justify-content: flex-start;
       padding: 0;
       min-height: 100vh;
-      width: 100vw;
+      min-height: 100dvh;
+      width: 100%;
     }
 
     /* ─── Admin Sidebar ─────────────────────── */
@@ -104,6 +114,7 @@
       overflow-y: auto;
       overflow-x: hidden;
       min-height: 0;
+      min-width: 0;
       background: var(--bg-color);
       padding: 28px 32px;
       display: flex;
@@ -152,6 +163,22 @@
       font-family: var(--font-mono);
       text-transform: uppercase;
       letter-spacing: 0.8px;
+    }
+    /* Short, friendly intro under a card heading */
+    .card-intro {
+      margin: -6px 0 20px;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    /* Muted hint under the sidebar action buttons */
+    .sidebar-hint {
+      margin: 2px 0 0;
+      color: var(--text-muted);
+      font-size: 10px;
+      line-height: 1.4;
+      text-align: center;
+      font-family: var(--font-mono);
     }
 
     /* ─── Alerts ─────────────────────────────── */
@@ -336,16 +363,6 @@
     .mcq-remove-btn { padding: 8px; color: var(--accent-danger); border: 1px solid transparent; background: transparent; text-transform: none; }
     .mcq-remove-btn:hover { background: rgba(255,68,68,.08); border-color: rgba(255,68,68,.25); transform: none; box-shadow: none; }
 
-    /* ─── Code Options ────────────────────────── */
-    #code-options-container {
-      display: flex; flex-direction: column; gap: 12px;
-      margin-top: 10px; padding: 16px;
-      background: rgba(227,179,65,.02);
-      border: 1px dashed var(--border-color);
-      border-radius: var(--radius-md);
-    }
-
-    .hide { display: none !important; }
 
     @media (max-width: 1100px) {
       .admin-workspace { padding: 22px; }
@@ -423,6 +440,13 @@
 </head>
 
 <body>
+  <noscript>
+    <div role="alert" style="max-width:640px;margin:48px auto;padding:20px 24px;background:#fff;color:#1a1a1a;border:1px solid #d0d0d0;border-radius:8px;font-family:system-ui,sans-serif;line-height:1.5;text-align:center;">
+      <strong style="display:block;margin-bottom:8px;font-size:16px;">JavaScript is required</strong>
+      The Exam Builder runs entirely in your browser and needs JavaScript enabled to work. Please turn on JavaScript, then reload this page.
+    </div>
+  </noscript>
+
   <div id="dashboard-screen" class="screen active">
     
     <!-- Sidebar -->
@@ -457,14 +481,15 @@
           AI Tools: On
         </button>
         <div style="display: flex; gap: 8px; flex-direction: column;">
+          <button id="btn-preview-quiz" type="button" aria-label="Preview the exam as a student">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            Preview Exam
+          </button>
           <button class="success" id="btn-create-quiz">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Export Offline HTML
           </button>
-          <button class="primary" id="btn-host-live" style="background-color: var(--accent-primary); color: #0d1117;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline><path d="M12 2v2"></path><path d="M22 12h-2"></path><path d="M12 22v-2"></path><path d="M2 12h2"></path></svg>
-            Host Live Exam
-          </button>
+          <p class="sidebar-hint">Preview opens the exam here; Export downloads a shareable .html file.</p>
         </div>
       </div>
 
@@ -554,7 +579,7 @@
 
     <!-- Workspace -->
     <div class="admin-workspace">
-      <div id="admin-alert" class="alert-bar"></div>
+      <div id="admin-alert" class="alert-bar" role="status" aria-live="polite"></div>
 
       <!-- HTB-Style Stats Dashboard -->
       <div class="stats-dashboard" id="stats-dashboard">
@@ -600,20 +625,21 @@
             Exam Settings
           </h2>
         </div>
+        <p class="card-intro">These apply to the exported exam.</p>
         <div class="form-row">
           <div class="form-group">
-            <label>Exam Title</label>
+            <label for="exam-title">Exam Title</label>
             <input type="text" id="exam-title" placeholder="e.g. HTML & CSS Quiz" value="Custom Exam">
           </div>
         </div>
         <div class="form-row" style="margin-top: 10px;">
           <div class="form-group">
-            <label>Exam Start Password (optional)</label>
+            <label for="exam-password">Exam Start Password (optional)</label>
             <input type="password" id="exam-password" placeholder="Leave empty to let anyone start">
             <small>If set, students must enter this to start.</small>
           </div>
           <div class="form-group">
-            <label>Teacher Grading Password (optional)</label>
+            <label for="teacher-password">Teacher Grading Password (optional)</label>
             <input type="password" id="teacher-password" placeholder="Leave empty to let anyone view results">
             <small>If set, required to unlock the detailed results table at the end.</small>
           </div>
@@ -634,15 +660,9 @@
             <label for="enable-timer" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Enable Exam Timer</label>
           </div>
           <div class="form-group" style="flex: 0 0 200px;">
-            <label>Duration (minutes)</label>
+            <label for="exam-timer-minutes">Duration (minutes)</label>
             <input type="number" id="exam-timer-minutes" min="1" max="300" value="60" placeholder="e.g. 60" style="width: 100%;">
             <small>Auto-submits when time is up.</small>
-          </div>
-        </div>
-        <div class="form-row" style="margin-top: 10px;">
-          <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
-            <input type="checkbox" id="ctf-live-mode" style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
-            <label for="ctf-live-mode" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">CTF Live Mode (First Blood bonus: first solver gets +10% points per question)</label>
           </div>
         </div>
         <div class="form-row" style="margin-top: 10px; align-items: flex-end;">
@@ -655,7 +675,7 @@
             <small>If disabled, the exported results screen ends without a retry button.</small>
           </div>
           <div class="form-group" style="flex: 0 0 260px;">
-            <label>Questions Per Attempt (Offline HTML)</label>
+            <label for="offline-question-limit">Questions Per Attempt (Offline HTML)</label>
             <input type="number" id="offline-question-limit" min="1" max="500" placeholder="Leave blank to use all exported questions">
             <small>Example: export 40 questions, but show only 10 random questions on each page reset or retake.</small>
           </div>
@@ -681,26 +701,32 @@
 
         <div class="form-row">
           <div class="form-group" style="flex:0 0 220px;">
-            <label>AI Provider</label>
+            <label for="ai-provider">AI Provider</label>
             <select id="ai-provider">
               <option value="ollama" selected>Ollama (Free Local)</option>
+              <option value="openrouter">OpenRouter — GPT · Claude · Gemini (sign in)</option>
               <option value="openai">OpenAI Responses</option>
               <option value="custom">Custom OpenAI-Compatible</option>
             </select>
           </div>
           <div class="form-group">
-            <label>API Endpoint</label>
+            <label for="ai-endpoint">API Endpoint</label>
             <input type="url" id="ai-endpoint" value="http://127.0.0.1:11434/api/chat" placeholder="http://127.0.0.1:11434/api/chat">
             <small id="ai-endpoint-help">Free local endpoint. Make sure Ollama is running on your machine.</small>
           </div>
           <div class="form-group" style="flex:0 0 220px;">
-            <label>Model</label>
+            <label for="ai-model">Model</label>
             <input type="text" id="ai-model" value="llama3.2" placeholder="llama3.2" list="ai-model-suggestions">
             <datalist id="ai-model-suggestions">
               <option value="llama3.2"></option>
               <option value="qwen2.5:7b"></option>
               <option value="qwen2.5:14b"></option>
               <option value="gpt-oss:20b"></option>
+              <option value="openai/gpt-4o-mini"></option>
+              <option value="openai/gpt-4o"></option>
+              <option value="anthropic/claude-3.5-sonnet"></option>
+              <option value="google/gemini-flash-1.5"></option>
+              <option value="meta-llama/llama-3.1-70b-instruct"></option>
             </datalist>
             <small id="ai-model-help">Default local model is llama3.2. For stronger results on capable hardware, try qwen2.5:14b or gpt-oss:20b.</small>
           </div>
@@ -708,8 +734,14 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Bearer Token / API Key</label>
-            <input type="password" id="ai-api-key" placeholder="Enter your token or leave blank if your proxy handles auth">
+            <label for="ai-api-key">Bearer Token / API Key</label>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <input type="password" id="ai-api-key" placeholder="Enter your token or leave blank if your proxy handles auth" style="flex:1; min-width:200px;">
+              <button type="button" id="btn-ai-openrouter-signin" class="primary" style="white-space:nowrap;" title="Sign in with your OpenRouter account to use GPT, Claude, Gemini and more">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                Sign in with OpenRouter
+              </button>
+            </div>
             <small id="ai-auth-help">No API key needed for local Ollama. Example: ollama pull llama3.2 or ollama pull qwen2.5:14b</small>
           </div>
         </div>
@@ -718,23 +750,23 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Source Notes / Lesson Content</label>
+            <label for="ai-source-notes">Source Notes / Lesson Content</label>
             <textarea id="ai-source-notes" rows="9" placeholder="Paste lesson notes, lecture text, textbook excerpts, study guides, or teacher instructions here."></textarea>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group" style="flex:0 0 280px;">
-            <label>Optional Source File</label>
+            <label for="ai-source-file">Optional Source File</label>
             <input type="file" id="ai-source-file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown">
             <small id="ai-source-file-status">Supported: PDF, TXT, MD.</small>
           </div>
           <div class="form-group" style="flex:0 0 120px;">
-            <label>Questions</label>
+            <label for="ai-question-count">Questions</label>
             <input type="number" id="ai-question-count" min="1" max="20" value="5">
           </div>
           <div class="form-group" style="flex:0 0 180px;">
-            <label>Difficulty</label>
+            <label for="ai-difficulty">Difficulty</label>
             <select id="ai-difficulty">
               <option value="easy">Easy</option>
               <option value="medium" selected>Medium</option>
@@ -743,7 +775,7 @@
             </select>
           </div>
           <div class="form-group" style="flex:0 0 180px;">
-            <label>Question Mix</label>
+            <label for="ai-output-mode">Question Mix</label>
             <select id="ai-output-mode">
               <option value="mixed" selected>Mixed</option>
               <option value="mcq">MCQ only</option>
@@ -776,6 +808,14 @@
             Question Bank
           </h2>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button id="btn-exam-library" style="font-size:11px;padding:5px 10px;" aria-label="Save or load exams from your library">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              Save / Load
+            </button>
+            <button id="btn-share-exam" style="font-size:11px;padding:5px 10px;" aria-label="Share exam as a code or link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              Share
+            </button>
             <button id="btn-export-json" style="font-size:11px;padding:5px 10px;" title="Export selected (or all) questions as JSON backup">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               Export JSON
@@ -788,11 +828,12 @@
             <button class="danger" id="btn-reset-default" style="font-size:11px;padding:5px 10px;">Clear All</button>
           </div>
         </div>
+        <p class="card-intro">Your questions live here. Add, edit, reorder, then Preview or Export.</p>
         <div class="table-responsive">
           <table class="admin-table">
             <thead>
               <tr>
-                <th style="width:40px"><input type="checkbox" id="select-all-q" title="Select All" style="width:16px;height:16px;cursor:pointer;"></th>
+                <th style="width:40px"><input type="checkbox" id="select-all-q" title="Select All" aria-label="Select all questions" style="width:16px;height:16px;cursor:pointer;"></th>
                 <th style="width:50px">ID</th>
                 <th style="width:180px">Topic / Info</th>
                 <th>Question (EN)</th>
@@ -813,23 +854,25 @@
             Add New Question
           </h2>
         </div>
+        <p class="card-intro">Fill in the fields below, then Save Question to add it to your Question Bank.</p>
         <input type="hidden" id="edit-id" value="">
 
         <div class="form-row">
-          <div class="form-group" style="flex:0 0 80px">
-            <label>Order (ID)</label>
+          <div class="form-group" style="flex:0 0 140px">
+            <label for="edit-order">Position</label>
             <input type="number" id="edit-order" min="1" required>
+            <small>Sets the display order. Must be unique.</small>
           </div>
           <div class="form-group" style="flex:0 0 80px">
-            <label>Points</label>
+            <label for="edit-points">Points</label>
             <input type="number" id="edit-points" value="10" min="0.1" step="any" required>
           </div>
           <div class="form-group">
-            <label>Topic Category</label>
+            <label for="edit-topic">Topic Category</label>
             <input type="text" id="edit-topic" placeholder="e.g. Basic HTML Structure" required>
           </div>
           <div class="form-group" style="flex: 0 0 160px">
-            <label>Question Type</label>
+            <label for="edit-type">Question Type</label>
             <select id="edit-type">
               <option value="text">Text Input</option>
               <option value="mcq">Multiple Choice</option>
@@ -840,11 +883,11 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Question Text (English)</label>
+            <label for="edit-q-en">Question Text (English)</label>
             <textarea id="edit-q-en" rows="3" required></textarea>
           </div>
           <div class="form-group">
-            <label>Question Text (Arabic — optional)</label>
+            <label for="edit-q-ar">Question Text (Arabic — optional)</label>
             <textarea id="edit-q-ar" rows="3" dir="rtl"></textarea>
           </div>
         </div>
@@ -864,7 +907,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label>Optional Hint (shown to student)</label>
+            <label for="edit-hint">Optional Hint (shown to student)</label>
             <input type="text" id="edit-hint" placeholder="e.g. Think about the DOM structure">
           </div>
         </div>
@@ -872,14 +915,14 @@
         <!-- Dynamic Form Area: For TYPE=TEXT -->
         <div id="part-text" class="form-row dyn-part" style="flex-direction:column;gap:16px;">
           <div class="form-group">
-            <label>Expected Exact Answer</label>
+            <label for="edit-answer-text">Expected Exact Answer</label>
             <input type="text" id="edit-answer-text" placeholder="Plain text — will be hashed automatically">
             <small>Leave blank when editing an existing challenge to keep its hash.</small>
           </div>
           <div class="form-group" style="margin:0;">
             <label style="display:flex;align-items:center;gap:8px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-              Attach File for Students (Online Exam only)
+              Attach File for Students
             </label>
             <div id="file-upload-area" style="border:2px dashed var(--border-color);border-radius:var(--radius-md);padding:20px;text-align:center;cursor:pointer;transition:all .2s ease;position:relative;background:var(--input-bg);">
               <input type="file" id="edit-attachment" accept="*/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;">
@@ -919,17 +962,69 @@
         <div id="part-code" class="dyn-part" style="display:none;">
           <div class="form-row">
             <div class="form-group" style="flex: 0 0 200px">
-              <label>Language</label>
+              <label for="edit-code-lang">Language</label>
               <select id="edit-code-lang">
                 <option value="html">HTML / CSS / JS</option>
                 <option value="javascript">JavaScript (Console)</option>
-                <option value="python">Python (Brython)</option>
+                <option value="python">Python (Skulpt)</option>
               </select>
+              <small>Code answers are saved for the teacher to grade manually — they are not auto-scored.</small>
             </div>
-            <div class="form-group" style="display:none;">
-              <label>Verification Script / Expected Output Regex</label>
-              <textarea id="edit-code-verify" placeholder="e.g. function test(dom) { return !!dom.querySelector('h1')?.innerText; }" rows="3"></textarea>
-              <small>Instructor verification script. Details on implementation to be developed.</small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 0 0 260px">
+              <label for="edit-code-grade-mode">Auto-Grading</label>
+              <select id="edit-code-grade-mode">
+                <option value="manual">Manual review (teacher grades)</option>
+                <option value="output">Match expected output</option>
+                <option value="tests">Run test assertions</option>
+                <option value="similarity">Reference similarity (partial credit)</option>
+              </select>
+              <small>Manual = you grade later. Output = compare the program's printed output. Tests = run assertions for partial credit.</small>
+            </div>
+          </div>
+
+          <div id="code-grade-output" class="dyn-part" style="display:none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-code-expected">Expected Output</label>
+                <textarea id="edit-code-expected" rows="3" placeholder="Expected program output"></textarea>
+              </div>
+            </div>
+            <div class="form-row" style="align-items: flex-end;">
+              <div class="form-group" style="flex: 0 0 220px">
+                <label for="edit-code-match">Match type</label>
+                <select id="edit-code-match">
+                  <option value="exact">Exact match</option>
+                  <option value="contains">Output contains</option>
+                  <option value="regex">Regex match</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
+                <input type="checkbox" id="edit-code-normalize" style="width: 20px; height: 20px; margin: 0; cursor: pointer;">
+                <label for="edit-code-normalize" style="margin: 0; cursor: pointer; font-size: 14px; text-transform:none; font-weight: 500;">Ignore case &amp; extra whitespace</label>
+              </div>
+            </div>
+          </div>
+
+          <div id="code-grade-tests" class="dyn-part" style="display:none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-code-tests">Test Assertions</label>
+                <textarea id="edit-code-tests" rows="5" placeholder="assert(add(2,3) === 5, '2+3 should be 5');"></textarea>
+                <small>Runs AFTER the student's code. Use assert(condition, 'message'). Score = passed / total assertions. (JavaScript &amp; Python.)</small>
+              </div>
+            </div>
+          </div>
+
+          <div id="code-grade-similarity" class="dyn-part" style="display:none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-code-reference">Reference Solution</label>
+                <textarea id="edit-code-reference" rows="6" placeholder="Paste a correct solution. The student's code &amp; its output are scored by similarity to this."></textarea>
+                <small>The student gets partial credit based on how close their code and its output are to this reference (offline: token, edit-distance &amp; gzip similarity). Great for 'almost right' answers.</small>
+              </div>
             </div>
           </div>
         </div>
@@ -940,47 +1035,6 @@
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- Live Dashboard Modal -->
-  <div id="live-dashboard-modal" style="display:none; position:fixed; inset:0; background:var(--bg-color); z-index:9999; flex-direction:row; color:var(--text-main);">
-    <!-- Left Panel: QR Code & Link -->
-    <div style="width:350px; background:var(--panel-bg); border-right:1px solid var(--border-color); padding:30px; display:flex; flex-direction:column; align-items:center; text-align:center;">
-      <h2 style="color:var(--accent-primary); font-family:var(--font-mono); margin-bottom:20px;">LIVE EXAM ACTIVE</h2>
-      <div id="qrcode-container" style="background:white; padding:15px; border-radius:10px; margin-bottom:20px; display:inline-block;"></div>
-      <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Students scan or visit:</p>
-      <input type="text" id="live-link-input" readonly style="width:100%; text-align:center; padding:10px; border-radius:4px; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-bright); margin-bottom:20px; font-family:var(--font-mono);">
-      <button class="primary" id="btn-copy-link" style="width:100%; margin-bottom:20px; padding:8px;">Copy Link</button>
-      
-      <div style="margin-top:auto; width:100%;">
-        <p id="live-status-text" style="color:var(--accent-success); font-family:var(--font-mono); font-size:12px; margin-bottom:15px;">● Accepting Connections</p>
-        <button class="danger" id="btn-end-live" style="width:100%; padding:12px; font-weight:bold;">END EXAM NOW</button>
-        <button id="btn-close-live-modal" style="width:100%; padding:12px; margin-top:10px; display:none;">Back to Builder</button>
-      </div>
-    </div>
-    <!-- Right Panel: Leaderboard -->
-    <div style="flex:1; padding:40px; overflow-y:auto; background:var(--workspace-bg);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:20px;">
-        <h1 style="font-size:24px; color:var(--text-bright);">Live Leaderboard</h1>
-        <div style="font-family:var(--font-mono); font-size:14px; color:var(--accent-warning);">
-          Total Students: <span id="live-count">0</span>
-        </div>
-      </div>
-      <table class="admin-table" style="width:100%;">
-        <thead>
-          <tr>
-            <th style="width:60px">Rank</th>
-            <th>Student Name</th>
-            <th style="width:150px">Score</th>
-            <th style="width:150px">Time Elapsed</th>
-            <th style="width:120px">Status</th>
-          </tr>
-        </thead>
-        <tbody id="live-leaderboard-tbody">
-          <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Waiting for students to connect...</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 
@@ -999,11 +1053,6 @@
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
   <script src="challenges.js"></script>
   <script src="admin.js"></script>
 
@@ -1012,8 +1061,12 @@
     (function () {
       const btn  = document.getElementById('btn-theme');
       const body = document.body;
-      // Persist choice
-      if (localStorage.getItem('__theme') === 'light') {
+      // Persisted choice wins; otherwise honor the OS preference (DoD #5).
+      const saved = localStorage.getItem('__theme');
+      const prefersLight = saved === null
+        && window.matchMedia
+        && window.matchMedia('(prefers-color-scheme: light)').matches;
+      if (saved === 'light' || prefersLight) {
         body.classList.add('light');
         btn.textContent = 'Dark Mode';
       }
